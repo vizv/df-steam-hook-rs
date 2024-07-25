@@ -4,7 +4,6 @@ use std::path::Path;
 
 use crate::{
   constants::{PATH_CONFIG, PATH_EXE, PATH_OFFSETS},
-  encoding::Encoding,
   utils,
 };
 
@@ -19,7 +18,6 @@ pub struct Config {
   pub offset: Option<OffsetsValues>,
   pub symbol: Option<SymbolsValues>,
   pub hook_version: String,
-  pub encoding: Encoding,
 }
 
 #[derive(Deserialize)]
@@ -37,8 +35,6 @@ pub struct ConfigMetadata {
 pub struct Settings {
   pub log_level: usize,
   pub log_file: String,
-  pub enable_search: bool,
-  pub enable_translation: bool,
   pub watchdog: bool,
 }
 
@@ -58,44 +54,19 @@ pub struct OffsetsMetadata {
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
-pub struct OffsetsValues {
-  pub string_copy_n: Option<usize>,
-  pub string_append_n: Option<usize>,
-  pub std_string_ctor: Option<usize>,
-  pub addst: Option<usize>,
-  pub addst_top: Option<usize>,
-  pub addst_flag: Option<usize>,
-  pub standardstringentry: Option<usize>,
-  pub simplify_string: Option<usize>,
-  pub upper_case_string: Option<usize>,
-  pub lower_case_string: Option<usize>,
-  pub capitalize_string_words: Option<usize>,
-  pub capitalize_string_first_word: Option<usize>,
-  pub utf_input: Option<usize>,
-}
+pub struct OffsetsValues {}
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct SymbolsValues {
-  pub addst: Option<Vec<String>>,
-  pub addst_top: Option<Vec<String>>,
-  pub addst_flag: Option<Vec<String>>,
-  pub standardstringentry: Option<Vec<String>>,
-  pub simplify_string: Option<Vec<String>>,
-  pub upper_case_string: Option<Vec<String>>,
-  pub lower_case_string: Option<Vec<String>>,
-  pub capitalize_string_words: Option<Vec<String>>,
-  pub capitalize_string_first_word: Option<Vec<String>>,
-  pub std_string_append: Option<Vec<String>>,
-  pub std_string_assign: Option<Vec<String>>,
   pub enabler: Option<Vec<String>>,
+  pub gps: Option<Vec<String>>,
 }
 
 impl Config {
   pub fn new() -> Self {
     let checksum = Self::checksum(PATH_EXE).unwrap_or(0);
     let main_config = Self::parse_toml::<MainConfig>(PATH_CONFIG).unwrap();
-    let encoding = Encoding::new();
     let hook_version = match option_env!("HOOK_VERSION") {
       Some(version) => String::from(version),
       None => String::from("not-defined"),
@@ -128,7 +99,6 @@ impl Config {
       offset,
       symbol,
       hook_version,
-      encoding,
     }
   }
 

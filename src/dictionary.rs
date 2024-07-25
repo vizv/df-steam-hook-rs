@@ -8,7 +8,6 @@ use crate::utils;
 #[static_init::dynamic]
 pub static DICTIONARY: Dictionary = Dictionary::new(PATH_DICTIONARY);
 
-#[allow(dead_code)]
 pub struct Dictionary {
   map: HashMap<Vec<u8>, Vec<u8>>,
   path: &'static str,
