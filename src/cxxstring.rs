@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::alloc::{alloc_zeroed, realloc, Layout};
 use std::ops::{Index, IndexMut};
 
