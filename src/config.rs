@@ -61,6 +61,8 @@ pub struct OffsetsValues {}
 pub struct SymbolsValues {
   pub enabler: Option<Vec<String>>,
   pub gps: Option<Vec<String>>,
+  pub delete_all_post_init_textures: Option<Vec<String>>,
+  pub update_tile: Option<Vec<String>>,
 }
 
 impl Config {
