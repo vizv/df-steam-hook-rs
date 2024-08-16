@@ -11,6 +11,7 @@ mod dictionary;
 mod hooks;
 mod utils;
 mod watchdog;
+mod screen;
 
 use log::{debug, error, info};
 
