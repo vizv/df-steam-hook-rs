@@ -51,11 +51,20 @@ impl Screen {
     mem::forget(canvas);
   }
 
-  pub fn add(&mut self, x: i32, y: i32, content: String, _flag: u32) {
+  pub fn add(&mut self, x: i32, y: i32, content: String, flag: u32) {
+    if flag & 0b10000 != 0 {
+      // we only renders the top half
+      return;
+    }
+
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
 
     let mut x = CANVAS_FONT_WIDTH * x as f32;
-    let y = CANVAS_FONT_HEIGHT * y as f32;
+    let mut y = CANVAS_FONT_HEIGHT * y as f32;
+    if flag & 0b1000 != 0 {
+      // shift down by half font height
+      y += CANVAS_FONT_HEIGHT / 2.0;
+    }
     content.chars().for_each(|ch| {
       let unicode = ch as u16;
       if unicode < 256 {
