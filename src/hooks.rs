@@ -3,30 +3,11 @@ use retour::static_detour;
 
 use crate::config::CONFIG;
 use crate::dictionary::DICTIONARY;
+use crate::global::GPS;
 use crate::screen::{SCREEN, SCREEN_TOP};
 use crate::{raw, utils};
 
 use r#macro::hook;
-
-#[cfg(target_os = "linux")]
-#[static_init::dynamic]
-static ENABLER: usize = unsafe {
-  match CONFIG.symbol.is_some() {
-    true => {
-      utils::symbol_handle_self::<*const i64>(&CONFIG.symbol.as_ref().unwrap().enabler.as_ref().unwrap()[1]) as usize
-    }
-    false => 0 as usize,
-  }
-};
-
-#[cfg(target_os = "linux")]
-#[static_init::dynamic]
-static GPS: usize = unsafe {
-  match CONFIG.symbol.is_some() {
-    true => utils::symbol_handle_self::<*const i64>(&CONFIG.symbol.as_ref().unwrap().gps.as_ref().unwrap()[1]) as usize,
-    false => 0 as usize,
-  }
-};
 
 pub unsafe fn attach_all() -> Result<()> {
   attach_addst()?;

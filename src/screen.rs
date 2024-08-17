@@ -4,6 +4,7 @@ use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{
   font::{self, FONT},
+  global::ENABLER,
   raw,
 };
 
@@ -57,6 +58,9 @@ impl Screen {
       return;
     }
 
+    let enabler = ENABLER.to_owned();
+    let textures_base = raw::deref::<usize>(enabler + 0x388);
+
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
 
     let mut x = CANVAS_FONT_WIDTH * x as f32;
@@ -65,23 +69,27 @@ impl Screen {
       // shift down by half font height
       y += CANVAS_FONT_HEIGHT / 2.0;
     }
+
     content.chars().for_each(|ch| {
       let unicode = ch as u16;
-      if unicode < 256 {
-        return;
-      }
+      let cjk = unicode >= 256;
 
-      unsafe {
-        let glyph_surface = FONT.write().render(unicode) as *mut sdl::SDL_Surface;
-        let mut rect = Rect::new(
-          x.round() as i32,
-          y.round() as i32,
-          font::CJK_FONT_SIZE,
-          font::CJK_FONT_SIZE,
-        );
-        sdl::SDL_UpperBlit(glyph_surface, ptr::null(), canvas, rect.raw_mut());
-      }
-      x += font::CJK_FONT_SIZE as f32;
+      let glyph_surface = if cjk {
+        FONT.write().render(unicode) as *mut sdl::SDL_Surface
+      } else {
+        raw::deref::<*mut sdl::SDL_Surface>(textures_base + unicode as usize * 8)
+      };
+
+      let (w, h) = if cjk {
+        (font::CJK_FONT_SIZE, font::CJK_FONT_SIZE)
+      } else {
+        (font::FONT_WIDTH * 4 / 3, font::FONT_HEIGHT * 4 / 3)
+      };
+
+      let mut rect = Rect::new(x.round() as i32, y.round() as i32, w, h);
+
+      unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), canvas, rect.raw_mut()) };
+      x += w as f32;
     });
   }
 
