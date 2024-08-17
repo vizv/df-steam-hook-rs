@@ -33,6 +33,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst_top()?;
   attach_addst_flag()?;
   attach_erasescreen()?;
+  attach_resize()?;
   attach_update_all()?;
   Ok(())
 }
@@ -42,6 +43,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst_top()?;
   enable_addst_flag()?;
   enable_erasescreen()?;
+  enable_resize()?;
   enable_update_all()?;
   Ok(())
 }
@@ -51,6 +53,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst_top()?;
   disable_addst_flag()?;
   disable_erasescreen()?;
+  disable_resize()?;
   disable_update_all()?;
   Ok(())
 }
@@ -89,7 +92,14 @@ fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn erasescreen(gps: usize) {
   unsafe { original!(gps) };
-  SCREEN.write().clear()
+  SCREEN.write().clear();
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+fn resize(renderer: usize, w: u32, h: u32) {
+  unsafe { original!(renderer, w, h) };
+  let gps = GPS.to_owned();
+  SCREEN.write().resize(w, h);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
