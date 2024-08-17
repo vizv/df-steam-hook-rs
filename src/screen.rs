@@ -16,26 +16,18 @@ pub static mut SCREEN: Screen = Default::default();
 #[static_init::dynamic]
 pub static mut SCREEN_TOP: Screen = Default::default();
 
-pub struct Text {
-  x: i32,
-  y: i32,
-  content: String,
-  flag: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 struct ScreenInfo {
+  pub dispx_z: i32,
+  pub dispy_z: i32,
   pub origin_x: i32,
   pub origin_y: i32,
-  pub cur_w: i32,
-  pub cur_h: i32,
 }
 
 #[derive(Default)]
 pub struct Screen {
   dimension: (u32, u32),
   canvas_ptr: usize,
-  texts: Vec<Text>,
+  // texts: Vec<Text>,
 }
 
 impl Screen {
@@ -59,16 +51,49 @@ impl Screen {
     mem::forget(canvas);
   }
 
-  pub fn add(&mut self, x: i32, y: i32, content: String, flag: u32) {
-    self.texts.push(Text { x, y, content, flag });
+  pub fn add(&mut self, x: i32, y: i32, content: String, _flag: u32) {
+    let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+
+    let mut x = CANVAS_FONT_WIDTH * x as f32;
+    let y = CANVAS_FONT_HEIGHT * y as f32;
+    content.chars().for_each(|ch| {
+      let unicode = ch as u16;
+      if unicode < 256 {
+        return;
+      }
+
+      unsafe {
+        let glyph_surface = FONT.write().render(unicode) as *mut sdl::SDL_Surface;
+        let mut rect = Rect::new(
+          x.round() as i32,
+          y.round() as i32,
+          font::CJK_FONT_SIZE,
+          font::CJK_FONT_SIZE,
+        );
+        sdl::SDL_UpperBlit(glyph_surface, ptr::null(), canvas, rect.raw_mut());
+      }
+      x += font::CJK_FONT_SIZE as f32;
+    });
   }
 
   pub fn clear(&mut self) {
-    self.texts.clear();
     unsafe {
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
       sdl::SDL_FillRect(canvas, ptr::null(), 0);
     }
+  }
+
+  pub fn clear_rect(&mut self, x1: i32, x2: i32, y1: i32, y2: i32) {
+    if x2 < x1 || y2 < y1 {
+      return;
+    }
+
+    log::debug!("clear_rect: ({},{}) -> ({},{})", x1, y1, x2, y2);
+    // unsafe {
+    //   let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+    //   let rect = Rect::new(x1, y1, (x2 - x1) as u32, (y2 - y1) as u32);
+    //   sdl::SDL_FillRect(canvas, rect.raw(), 0);
+    // }
   }
 
   pub fn render(&mut self, renderer: usize) {
@@ -77,30 +102,7 @@ impl Screen {
     }
 
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let info = raw::deref::<ScreenInfo>(renderer + 0x168);
-
-    for text in &self.texts {
-      let mut x = CANVAS_FONT_WIDTH * text.x as f32;
-      let y = CANVAS_FONT_HEIGHT * text.y as f32;
-      text.content.chars().for_each(|ch| {
-        let unicode = ch as u16;
-        if unicode < 256 {
-          return;
-        }
-
-        unsafe {
-          let glyph_surface = FONT.write().render(unicode) as *mut sdl::SDL_Surface;
-          let mut rect = Rect::new(
-            x.round() as i32,
-            y.round() as i32,
-            font::CJK_FONT_SIZE,
-            font::CJK_FONT_SIZE,
-          );
-          sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), canvas, rect.raw_mut());
-        }
-        x += font::CJK_FONT_SIZE as f32;
-      });
-    }
+    let info = raw::deref::<ScreenInfo>(renderer + 0x160);
 
     unsafe {
       let sdl_renderer = raw::deref(renderer + 0x108);
@@ -113,10 +115,10 @@ impl Screen {
         (self.dimension.1 as f32 * CANVAS_FONT_HEIGHT).round() as u32,
       );
       let dstrect = Rect::new(
-        (info.origin_x as f32 * 2.0 / 3.0) as i32,
-        (info.origin_y as f32 * 2.0 / 3.0) as i32,
-        (info.cur_w - info.origin_x) as u32,
-        (info.cur_h - info.origin_y) as u32,
+        info.origin_x as i32,
+        info.origin_y as i32,
+        self.dimension.0 * info.dispx_z as u32,
+        self.dimension.1 * info.dispy_z as u32,
       );
       sdl::SDL_RenderCopy(sdl_renderer, texture, srcrect.raw(), dstrect.raw());
       sdl::SDL_DestroyTexture(texture);

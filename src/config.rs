@@ -65,8 +65,16 @@ pub struct SymbolsValues {
   pub addst_top: Option<Vec<String>>,
   pub addst_flag: Option<Vec<String>>,
   pub erasescreen: Option<Vec<String>>,
+  pub erasescreen_clip: Option<Vec<String>>, // ??
+  pub erasescreen_rect: Option<Vec<String>>, // ??
+  pub add_lower_tile: Option<Vec<String>>, // ??
+  pub add_top_lower_tile: Option<Vec<String>>, // ??
   pub resize: Option<Vec<String>>,
   pub update_all: Option<Vec<String>>,
+  pub update_tile: Option<Vec<String>>,
+  pub update_anchor_tile: Option<Vec<String>>,
+  pub update_top_tile: Option<Vec<String>>,
+  pub update_top_anchor_tile: Option<Vec<String>>,
 }
 
 impl Config {
