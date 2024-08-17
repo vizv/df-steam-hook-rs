@@ -5,8 +5,8 @@ use crate::config::CONFIG;
 use crate::cxxstring::CxxString;
 // use crate::cxxstring::CxxString;
 // use crate::dictionary::DICTIONARY;
-use crate::utils;
 use crate::screen::{SCREEN, SCREEN_TOP};
+use crate::utils;
 
 use r#macro::hook;
 
@@ -61,19 +61,40 @@ fn deref<T>(addr: usize) -> T {
   unsafe { (addr as *const T).read() }
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst(gps: usize, src: *const u8, justify: u8, space: u32) {
-  let text = unsafe { String::from_utf8_lossy(CxxString::from_ptr(src).to_bytes_without_nul()).into_owned() };
-  let x = deref::<i32>(gps + 0x84); // gps.screenx
-  let y = deref::<i32>(gps + 0x88); // gps.screeny
-  SCREEN.write().add(x, y, text);
+fn deref_string(addr: usize) -> String {
+  unsafe { String::from_utf8_lossy(CxxString::from_ptr(addr as *const u8).to_bytes_without_nul()).into_owned() }
+}
+
+fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
+  (
+    deref::<i32>(addr + 0x84), // gps.screenx
+    deref::<i32>(addr + 0x88), // gps.screeny
+  )
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst_top(gps: usize, src: *const u8, justify: u8, space: u32) {}
+fn addst(gps: usize, str: usize, just: u8, space: i32) {
+  let mut content = deref_string(str);
+  let (x, y) = gps_get_screen_coord(gps);
+  if content == "Create new world" {
+    content = String::from("创建新的世界");
+  }
+  SCREEN.write().add(x, y, content, 0);
+}
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst_flag(gps: usize, src: *const u8, justify: u8, space: u32) {}
+fn addst_top(gps: usize, str: usize, just: u8, space: i32) {
+  let content = deref_string(str);
+  let (x, y) = gps_get_screen_coord(gps);
+  SCREEN_TOP.write().add(x, y, content, 0);
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
+  let content = deref_string(str);
+  let (x, y) = gps_get_screen_coord(gps);
+  SCREEN.write().add(x, y, content, sflag);
+}
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn erasescreen(gps: usize) {
