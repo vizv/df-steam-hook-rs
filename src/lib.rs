@@ -11,6 +11,7 @@ mod dictionary;
 mod hooks;
 mod utils;
 mod watchdog;
+mod raw;
 mod screen;
 mod font;
 

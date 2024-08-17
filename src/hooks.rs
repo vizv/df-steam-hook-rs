@@ -2,11 +2,9 @@ use anyhow::Result;
 use retour::static_detour;
 
 use crate::config::CONFIG;
-use crate::cxxstring::CxxString;
-// use crate::cxxstring::CxxString;
 // use crate::dictionary::DICTIONARY;
 use crate::screen::{SCREEN, SCREEN_TOP};
-use crate::utils;
+use crate::{raw, utils};
 
 use r#macro::hook;
 
@@ -35,7 +33,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst_top()?;
   attach_addst_flag()?;
   attach_erasescreen()?;
-  attach_update_tile()?;
+  attach_update_all()?;
   Ok(())
 }
 
@@ -44,7 +42,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst_top()?;
   enable_addst_flag()?;
   enable_erasescreen()?;
-  enable_update_tile()?;
+  enable_update_all()?;
   Ok(())
 }
 
@@ -53,28 +51,20 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst_top()?;
   disable_addst_flag()?;
   disable_erasescreen()?;
-  disable_update_tile()?;
+  disable_update_all()?;
   Ok(())
-}
-
-fn deref<T>(addr: usize) -> T {
-  unsafe { (addr as *const T).read() }
-}
-
-fn deref_string(addr: usize) -> String {
-  unsafe { String::from_utf8_lossy(CxxString::from_ptr(addr as *const u8).to_bytes_without_nul()).into_owned() }
 }
 
 fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
   (
-    deref::<i32>(addr + 0x84), // gps.screenx
-    deref::<i32>(addr + 0x88), // gps.screeny
+    raw::deref::<i32>(addr + 0x84), // gps.screenx
+    raw::deref::<i32>(addr + 0x88), // gps.screeny
   )
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn addst(gps: usize, str: usize, just: u8, space: i32) {
-  let mut content = deref_string(str);
+  let mut content = raw::deref_string(str);
   let (x, y) = gps_get_screen_coord(gps);
   if content == "Create new world" {
     content = String::from("创建新的世界");
@@ -84,14 +74,14 @@ fn addst(gps: usize, str: usize, just: u8, space: i32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn addst_top(gps: usize, str: usize, just: u8, space: i32) {
-  let content = deref_string(str);
+  let content = raw::deref_string(str);
   let (x, y) = gps_get_screen_coord(gps);
   SCREEN_TOP.write().add(x, y, content, 0);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
-  let content = deref_string(str);
+  let content = raw::deref_string(str);
   let (x, y) = gps_get_screen_coord(gps);
   SCREEN.write().add(x, y, content, sflag);
 }
@@ -103,7 +93,7 @@ fn erasescreen(gps: usize) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn update_tile(render: usize, x: u32, y: u32) {
-  unsafe { original!(render, x, y) };
-  SCREEN.write().render()
+fn update_all(renderer: usize) {
+  unsafe { original!(renderer) };
+  SCREEN.write().render(renderer)
 }
