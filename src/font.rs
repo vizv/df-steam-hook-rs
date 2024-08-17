@@ -1,7 +1,6 @@
 use anyhow::Result;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
-use std::char;
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
 
@@ -62,15 +61,11 @@ impl Font {
       let surface_ptr = surface.raw() as usize;
       std::mem::forget(surface);
       self.textures.insert(unicode, surface_ptr);
-      log::debug!(
-        "render new glyph {} for {} to 0x{:x}",
-        unicode,
-        unsafe { char::from_u32_unchecked(unicode as u32) },
-        surface_ptr
-      );
 
       return surface_ptr;
     }
+
+    log::debug!("unable to render unicode {}", unicode);
 
     return 0;
   }
