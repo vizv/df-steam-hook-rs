@@ -71,10 +71,11 @@ fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn addst(gps: usize, str: usize, just: u8, space: i32) {
   let mut content = raw::deref_string(str);
-  let (x, y) = gps_get_screen_coord(gps);
   if let Some(translated) = DICTIONARY.get(&content) {
     content = translated.to_owned();
   }
+
+  let (x, y) = gps_get_screen_coord(gps);
   SCREEN.write().add(x, y, content, 0);
 }
 
@@ -87,7 +88,11 @@ fn addst_top(gps: usize, str: usize, just: u8, space: i32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
-  let content = raw::deref_string(str);
+  let mut content = raw::deref_string(str);
+  if let Some(translated) = DICTIONARY.get(&content) {
+    content = translated.to_owned();
+  }
+
   let (x, y) = gps_get_screen_coord(gps);
   SCREEN.write().add(x, y, content, sflag);
 }
@@ -107,7 +112,7 @@ fn resize(renderer: usize, w: u32, h: u32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
-  // SCREEN.write().render_top(renderer);
+  SCREEN_TOP.write().render(renderer);
 }
 
 struct Dimension {
@@ -119,9 +124,12 @@ struct Dimension {
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
   let dim = raw::deref::<Dimension>(GPS.to_owned() + 0xa00);
+
   // hack to render text after the last update_tile in update_all
   // TODO: consider re-write update_all function completely according to g_src
-  if (x == dim.x - 1 && y == dim.y - 1) {
-    SCREEN.write().render(renderer);
+  if (x != dim.x - 1 || y != dim.y - 1) {
+    return;
   }
+
+  SCREEN.write().render(renderer);
 }
