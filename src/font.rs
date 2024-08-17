@@ -7,6 +7,8 @@ use std::io::{self, prelude::*};
 use crate::constants::PATH_FONT;
 use crate::utils;
 
+pub const FONT_WIDTH: u32 = 8;
+pub const FONT_HEIGHT: u32 = 12;
 pub const CJK_FONT_SIZE: u32 = 16;
 
 #[static_init::dynamic]

@@ -8,6 +8,7 @@ mod config;
 mod constants;
 mod cxxstring;
 mod dictionary;
+mod global;
 mod hooks;
 mod utils;
 mod watchdog;
