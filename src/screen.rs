@@ -83,19 +83,6 @@ impl Screen {
     }
   }
 
-  pub fn clear_rect(&mut self, x1: i32, x2: i32, y1: i32, y2: i32) {
-    if x2 < x1 || y2 < y1 {
-      return;
-    }
-
-    log::debug!("clear_rect: ({},{}) -> ({},{})", x1, y1, x2, y2);
-    // unsafe {
-    //   let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    //   let rect = Rect::new(x1, y1, (x2 - x1) as u32, (y2 - y1) as u32);
-    //   sdl::SDL_FillRect(canvas, rect.raw(), 0);
-    // }
-  }
-
   pub fn render(&mut self, renderer: usize) {
     if self.canvas_ptr == 0 {
       return;
