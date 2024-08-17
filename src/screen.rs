@@ -2,13 +2,19 @@ use std::{mem, ptr};
 
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
-use crate::{font::FONT, raw};
+use crate::{
+  font::{self, FONT},
+  raw,
+};
+
+const CANVAS_FONT_WIDTH: f32 = (font::CJK_FONT_SIZE as f32) * 2.0 / 3.0;
+const CANVAS_FONT_HEIGHT: f32 = font::CJK_FONT_SIZE as f32;
 
 #[static_init::dynamic]
-pub static mut SCREEN: Screen = Screen::new();
+pub static mut SCREEN: Screen = Default::default();
 
 #[static_init::dynamic]
-pub static mut SCREEN_TOP: Screen = Screen::new();
+pub static mut SCREEN_TOP: Screen = Default::default();
 
 pub struct Text {
   x: i32,
@@ -19,8 +25,6 @@ pub struct Text {
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 struct ScreenInfo {
-  pub dispx_z: i32,
-  pub dispy_z: i32,
   pub origin_x: i32,
   pub origin_y: i32,
   pub cur_w: i32,
@@ -29,48 +33,31 @@ struct ScreenInfo {
 
 #[derive(Default)]
 pub struct Screen {
-  info: ScreenInfo,
-  surface_size: (u32, u32),
-  surface_ptr: usize,
+  dimension: (u32, u32),
+  canvas_ptr: usize,
   texts: Vec<Text>,
 }
 
 impl Screen {
-  fn new() -> Self {
-    let mut screen: Screen = Default::default();
+  pub fn resize(&mut self, w: u32, h: u32) {
+    log::debug!("resize: {},{}", w, h);
+    self.dimension.0 = w;
+    self.dimension.1 = h;
 
-    let displays_count = unsafe { sdl::SDL_GetNumVideoDisplays() };
-    for i in 0..displays_count {
-      unsafe {
-        let mut out = mem::MaybeUninit::uninit();
-        if sdl::SDL_GetDisplayBounds(i, out.as_mut_ptr()) == 0 {
-          let rect = Rect::from_ll(out.assume_init());
-          if rect.width() > screen.surface_size.0 {
-            screen.surface_size.0 = rect.width()
-          }
-          if rect.height() > screen.surface_size.1 {
-            screen.surface_size.1 = rect.height()
-          }
-        }
-      };
+    if self.canvas_ptr != 0 {
+      let canvas = unsafe { Surface::from_ll(self.canvas_ptr as *mut sdl::SDL_Surface) };
+      mem::drop(canvas);
     }
-    let surface = Surface::new(screen.surface_size.0, screen.surface_size.1, PixelFormatEnum::RGBA32).unwrap();
-    screen.surface_ptr = surface.raw() as usize;
-    mem::forget(surface);
 
-    screen
+    let canvas = Surface::new(
+      (w as f32 * CANVAS_FONT_WIDTH).round() as u32,
+      (h as f32 * CANVAS_FONT_HEIGHT).round() as u32,
+      PixelFormatEnum::RGBA32,
+    )
+    .unwrap();
+    self.canvas_ptr = canvas.raw() as usize;
+    mem::forget(canvas);
   }
-
-  // pub fn resize(&mut self, x: u32, y: u32) {
-  //   if self.surface_ptr != 0 {
-  //     let surface = unsafe { Surface::from_ll(self.surface_ptr as *mut sdl::SDL_Surface) };
-  //     mem::drop(surface);
-  //   }
-
-  //   let surface = Surface::new(x, y, PixelFormatEnum::RGBA32).unwrap();
-  //   self.surface_ptr = surface.raw() as usize;
-  //   mem::forget(surface);
-  // }
 
   pub fn add(&mut self, x: i32, y: i32, content: String, flag: u32) {
     self.texts.push(Text { x, y, content, flag });
@@ -79,23 +66,22 @@ impl Screen {
   pub fn clear(&mut self) {
     self.texts.clear();
     unsafe {
-      let surface = self.surface_ptr as *mut sdl::SDL_Surface;
-      sdl::SDL_FillRect(surface, ptr::null(), 0);
+      let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+      sdl::SDL_FillRect(canvas, ptr::null(), 0);
     }
   }
 
   pub fn render(&mut self, renderer: usize) {
-    let surface = self.surface_ptr as *mut sdl::SDL_Surface;
-
-    let new_info = raw::deref::<ScreenInfo>(renderer + 0x160);
-    if self.info != new_info {
-      log::debug!("new_info: {:?}", new_info);
-      self.info = new_info;
+    if self.canvas_ptr == 0 {
+      return;
     }
 
+    let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+    let info = raw::deref::<ScreenInfo>(renderer + 0x168);
+
     for text in &self.texts {
-      let mut x = self.info.dispx_z * text.x + self.info.origin_x;
-      let y = self.info.dispy_z * text.y + self.info.origin_y;
+      let mut x = CANVAS_FONT_WIDTH * text.x as f32;
+      let y = CANVAS_FONT_HEIGHT * text.y as f32;
       text.content.chars().for_each(|ch| {
         let unicode = ch as u16;
         if unicode < 256 {
@@ -104,18 +90,35 @@ impl Screen {
 
         unsafe {
           let glyph_surface = FONT.write().render(unicode) as *mut sdl::SDL_Surface;
-          let mut rect = Rect::new(x, y, self.info.dispy_z as u32, self.info.dispy_z as u32);
-          sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), surface, rect.raw_mut());
+          let mut rect = Rect::new(
+            x.round() as i32,
+            y.round() as i32,
+            font::CJK_FONT_SIZE,
+            font::CJK_FONT_SIZE,
+          );
+          sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), canvas, rect.raw_mut());
         }
-        x += self.info.dispy_z;
+        x += font::CJK_FONT_SIZE as f32;
       });
     }
 
     unsafe {
       let sdl_renderer = raw::deref(renderer + 0x108);
-      let texture = sdl::SDL_CreateTextureFromSurface(sdl_renderer, surface);
-      let rect = Rect::new(0, 0, self.info.cur_w as u32, self.info.cur_h as u32);
-      sdl::SDL_RenderCopy(sdl_renderer, texture, rect.raw(), rect.raw());
+      let texture = sdl::SDL_CreateTextureFromSurface(sdl_renderer, canvas);
+      sdl::SDL_SetTextureScaleMode(texture, sdl::SDL_ScaleMode::SDL_ScaleModeLinear);
+      let srcrect = Rect::new(
+        0,
+        0,
+        (self.dimension.0 as f32 * CANVAS_FONT_WIDTH).round() as u32,
+        (self.dimension.1 as f32 * CANVAS_FONT_HEIGHT).round() as u32,
+      );
+      let dstrect = Rect::new(
+        (info.origin_x as f32 * 2.0 / 3.0) as i32,
+        (info.origin_y as f32 * 2.0 / 3.0) as i32,
+        (info.cur_w - info.origin_x) as u32,
+        (info.cur_h - info.origin_y) as u32,
+      );
+      sdl::SDL_RenderCopy(sdl_renderer, texture, srcrect.raw(), dstrect.raw());
       sdl::SDL_DestroyTexture(texture);
     }
   }

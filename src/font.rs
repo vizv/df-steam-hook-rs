@@ -8,12 +8,12 @@ use std::io::{self, prelude::*};
 use crate::constants::PATH_FONT;
 use crate::utils;
 
+pub const CJK_FONT_SIZE: u32 = 16;
+
 #[static_init::dynamic]
 pub static mut FONT: Font = Font::new(PATH_FONT);
 
-const WIDTH: u32 = 16;
-const HEIGHT: u32 = 16;
-const GLYPH_DATA_SIZE: usize = (WIDTH * HEIGHT / 8) as usize;
+const GLYPH_DATA_SIZE: usize = (CJK_FONT_SIZE * CJK_FONT_SIZE / 8) as usize;
 type Glyph = (u16, [u8; GLYPH_DATA_SIZE]);
 
 pub struct Font {
@@ -46,7 +46,7 @@ impl Font {
     }
 
     if let Some(glyph) = self.glyphs.get(&unicode) {
-      let mut surface = Surface::new(WIDTH, HEIGHT, PixelFormatEnum::RGBA32).unwrap();
+      let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
       surface.with_lock_mut(|buffer| {
         let data = glyph.1;
         for i in 0..GLYPH_DATA_SIZE {
