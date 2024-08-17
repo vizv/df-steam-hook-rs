@@ -65,7 +65,7 @@ pub struct SymbolsValues {
   pub addst_top: Option<Vec<String>>,
   pub addst_flag: Option<Vec<String>>,
   pub erasescreen: Option<Vec<String>>,
-  pub update_tile: Option<Vec<String>>,
+  pub update_all: Option<Vec<String>>,
 }
 
 impl Config {

@@ -14,15 +14,15 @@ pub static mut FONT: Font = Font::new(PATH_FONT);
 const WIDTH: u32 = 16;
 const HEIGHT: u32 = 16;
 const GLYPH_DATA_SIZE: usize = (WIDTH * HEIGHT / 8) as usize;
-type GlyphData = (u16, [u8; GLYPH_DATA_SIZE]);
+type Glyph = (u16, [u8; GLYPH_DATA_SIZE]);
 
 pub struct Font {
-  glyphs: HashMap<u16, GlyphData>,
+  glyphs: HashMap<u16, Glyph>,
   textures: HashMap<u16, usize>,
 }
 
 impl Font {
-  pub fn new(path: &'static str) -> Self {
+  fn new(path: &'static str) -> Self {
     Self {
       glyphs: match Font::load(path) {
         Ok(value) => value,
@@ -79,13 +79,13 @@ impl Font {
     self.glyphs.len()
   }
 
-  fn load(path: &str) -> Result<HashMap<u16, GlyphData>> {
+  fn load(path: &str) -> Result<HashMap<u16, Glyph>> {
     let file = std::fs::File::open(path)?;
     let mut reader = io::BufReader::new(file);
-    let mut map = HashMap::<u16, GlyphData>::new();
-    let mut buf = [0 as u8; size_of::<GlyphData>()];
+    let mut map = HashMap::<u16, Glyph>::new();
+    let mut buf = [0 as u8; size_of::<Glyph>()];
     while let Ok(()) = reader.read_exact(&mut buf) {
-      let glyph: GlyphData = unsafe { std::mem::transmute(buf) };
+      let glyph: Glyph = unsafe { std::mem::transmute(buf) };
       map.insert(glyph.0, glyph);
     }
     Ok(map)
