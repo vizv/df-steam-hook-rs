@@ -1,31 +1,26 @@
 use anyhow::Result;
+use cosmic_text::fontdb::{Database, Source};
+use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
-use std::collections::HashMap;
-use std::io::{self, prelude::*};
+use std::path::PathBuf;
 
-use crate::constants::PATH_FONT;
+use crate::config::CONFIG;
 use crate::utils;
 
-pub const FONT_WIDTH: u32 = 8;
-pub const FONT_HEIGHT: u32 = 12;
-pub const CJK_FONT_SIZE: u32 = 16;
+pub const CJK_FONT_SIZE: u32 = 24;
 
 #[static_init::dynamic]
-pub static mut FONT: Font = Font::new(PATH_FONT);
-
-const GLYPH_DATA_SIZE: usize = (CJK_FONT_SIZE * CJK_FONT_SIZE / 8) as usize;
-type Glyph = (u16, [u8; GLYPH_DATA_SIZE]);
+pub static mut FONT: Font = Font::new(&CONFIG.settings.font);
 
 pub struct Font {
-  glyphs: HashMap<u16, Glyph>,
-  textures: HashMap<u16, usize>,
+  font_system: FontSystem,
 }
 
 impl Font {
   fn new(path: &'static str) -> Self {
     Self {
-      glyphs: match Font::load(path) {
+      font_system: match Font::load(path) {
         Ok(value) => value,
         Err(_) => {
           log::error!("unable to load font {path}");
@@ -34,57 +29,45 @@ impl Font {
             format!("Unable to load font {path}").as_str(),
             utils::MessageIconType::Warning,
           );
-          Default::default()
+          FontSystem::new()
         }
       },
-      textures: Default::default(),
     }
   }
 
-  pub fn render(&mut self, unicode: u16) -> usize {
-    if let Some(surface_ptr) = self.textures.get(&unicode) {
-      return surface_ptr.to_owned();
-    }
-
-    if let Some(glyph) = self.glyphs.get(&unicode) {
-      let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
+  pub fn render(&mut self, string: String) -> Surface {
+    let metrics = Metrics::new(CJK_FONT_SIZE as f32, CJK_FONT_SIZE as f32);
+    let mut buffer = Buffer::new(&mut self.font_system, metrics);
+    let mut buffer = buffer.borrow_with(&mut self.font_system);
+    buffer.set_text(&string, Attrs::new(), Shaping::Advanced);
+    buffer.shape_until_scroll(true);
+    const TEXT_COLOR: Color = Color::rgb(0xff, 0xff, 0xff);
+    let mut swash_cache = SwashCache::new();
+    let width = CJK_FONT_SIZE * string.len() as u32;
+    let height = CJK_FONT_SIZE;
+    let mut surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
+    buffer.draw(&mut swash_cache, TEXT_COLOR, |x, y, w, h, c| {
       surface.with_lock_mut(|buffer| {
-        let data = glyph.1;
-        for i in 0..GLYPH_DATA_SIZE {
-          let mut byte = data[i];
-          for j in 0..8 {
-            let offset = (i * 8 + j) * 4;
-            let value = if byte & 1 == 1 { 0xff } else { 0 };
-            buffer[offset..offset + 4].fill(value);
-            byte >>= 1;
-          }
+        if c.a() == 0 || x < 0 || x >= width as i32 || y < 0 || y >= height as i32 || w != 1 || h != 1 {
+          return;
         }
+
+        let offset = y as usize * width as usize + x as usize;
+        buffer[offset * 4 + 0] = c.r();
+        buffer[offset * 4 + 1] = c.g();
+        buffer[offset * 4 + 2] = c.b();
+        buffer[offset * 4 + 3] = c.a();
       });
-      let surface_ptr = surface.raw() as usize;
-      std::mem::forget(surface);
-      self.textures.insert(unicode, surface_ptr);
+    });
 
-      return surface_ptr;
-    }
-
-    log::debug!("unable to render unicode {}", unicode);
-
-    return 0;
+    return surface;
   }
 
-  pub fn size(&self) -> usize {
-    self.glyphs.len()
-  }
+  fn load(path: &str) -> Result<FontSystem> {
+    let font = Source::File(PathBuf::from(path));
+    let mut db = Database::new();
+    db.load_font_source(font);
 
-  fn load(path: &str) -> Result<HashMap<u16, Glyph>> {
-    let file = std::fs::File::open(path)?;
-    let mut reader = io::BufReader::new(file);
-    let mut map = HashMap::<u16, Glyph>::new();
-    let mut buf = [0 as u8; size_of::<Glyph>()];
-    while let Ok(()) = reader.read_exact(&mut buf) {
-      let glyph: Glyph = unsafe { std::mem::transmute(buf) };
-      map.insert(glyph.0, glyph);
-    }
-    Ok(map)
+    Ok(FontSystem::new_with_locale_and_db(Default::default(), db))
   }
 }
