@@ -8,21 +8,19 @@ mod config;
 mod constants;
 mod cxxstring;
 mod dictionary;
+mod font;
 mod global;
 mod hooks;
-mod utils;
-mod watchdog;
 mod raw;
 mod screen;
-mod font;
+mod utils;
+mod watchdog;
 
 use log::{debug, error, info};
 
 use crate::config::CONFIG;
 use crate::constants::PATH_DICTIONARY;
-use crate::constants::PATH_FONT;
 use crate::dictionary::DICTIONARY;
-use crate::font::FONT;
 
 #[static_init::constructor]
 #[no_mangle]
@@ -41,8 +39,8 @@ extern "C" fn attach() {
   info!("pe checksum: 0x{:x}", CONFIG.offset_metadata.checksum);
   info!("offsets version: {}", CONFIG.offset_metadata.version);
   info!("hook version: {}", CONFIG.hook_version);
+  info!("font \"{}\"", CONFIG.settings.font);
   info!("dictionary \"{}\", items {}", PATH_DICTIONARY, DICTIONARY.size());
-  info!("font \"{}\", items {}", PATH_FONT, FONT.read().size());
   if CONFIG.offset_metadata.name != "not found" {
     match unsafe { hooks::attach_all() } {
       Ok(_) => debug!("hooks attached"),

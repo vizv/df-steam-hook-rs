@@ -24,6 +24,8 @@ dlopen2 = "0.7.0"
 anyhow = "1.0.86"
 device_query = "2.1.0"
 sdl2 = "0.37.0"
+fontdue = "0.9.2"
+cosmic-text = { version = "0.12.1", features = ["swash", "shape-run-cache"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 exe = "0.5.6"

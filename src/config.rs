@@ -36,6 +36,7 @@ pub struct Settings {
   pub log_level: usize,
   pub log_file: String,
   pub watchdog: bool,
+  pub font: String,
 }
 
 #[derive(Deserialize)]

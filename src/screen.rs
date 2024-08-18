@@ -2,14 +2,10 @@ use std::{mem, ptr};
 
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
-use crate::{
-  font::{self, FONT},
-  global::ENABLER,
-  raw,
-};
+use crate::{font::FONT, raw};
 
-const CANVAS_FONT_WIDTH: f32 = (font::CJK_FONT_SIZE as f32) * 2.0 / 3.0;
-const CANVAS_FONT_HEIGHT: f32 = font::CJK_FONT_SIZE as f32;
+pub const CANVAS_FONT_WIDTH: i32 = 8 * 2;
+pub const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
 
 #[static_init::dynamic]
 pub static mut SCREEN: Screen = Default::default();
@@ -28,7 +24,6 @@ struct ScreenInfo {
 pub struct Screen {
   dimension: (u32, u32),
   canvas_ptr: usize,
-  // texts: Vec<Text>,
 }
 
 impl Screen {
@@ -43,8 +38,8 @@ impl Screen {
     }
 
     let canvas = Surface::new(
-      (w as f32 * CANVAS_FONT_WIDTH).round() as u32,
-      (h as f32 * CANVAS_FONT_HEIGHT).round() as u32,
+      w * CANVAS_FONT_WIDTH as u32,
+      h * CANVAS_FONT_HEIGHT as u32,
       PixelFormatEnum::RGBA32,
     )
     .unwrap();
@@ -58,39 +53,21 @@ impl Screen {
       return;
     }
 
-    let enabler = ENABLER.to_owned();
-    let textures_base = raw::deref::<usize>(enabler + 0x388);
-
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
 
-    let mut x = CANVAS_FONT_WIDTH * x as f32;
-    let mut y = CANVAS_FONT_HEIGHT * y as f32;
+    let x = CANVAS_FONT_WIDTH * x;
+    let mut y = CANVAS_FONT_HEIGHT as i32 * y;
     if flag & 0b1000 != 0 {
       // shift down by half font height
-      y += CANVAS_FONT_HEIGHT / 2.0;
+      y += CANVAS_FONT_HEIGHT / 2;
     }
 
-    content.chars().for_each(|ch| {
-      let unicode = ch as u16;
-      let cjk = unicode >= 256;
-
-      let glyph_surface = if cjk {
-        FONT.write().render(unicode) as *mut sdl::SDL_Surface
-      } else {
-        raw::deref::<*mut sdl::SDL_Surface>(textures_base + unicode as usize * 8)
-      };
-
-      let (w, h) = if cjk {
-        (font::CJK_FONT_SIZE, font::CJK_FONT_SIZE)
-      } else {
-        (font::FONT_WIDTH * 4 / 3, font::FONT_HEIGHT * 4 / 3)
-      };
-
-      let mut rect = Rect::new(x.round() as i32, y.round() as i32, w, h);
-
-      unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), canvas, rect.raw_mut()) };
-      x += w as f32;
-    });
+    unsafe {
+      let mut font = FONT.write();
+      let surface = font.render(content);
+      let mut rect = Rect::new(x, y, surface.width(), surface.height());
+      sdl::SDL_UpperBlitScaled(surface.raw(), ptr::null(), canvas, rect.raw_mut());
+    };
   }
 
   pub fn clear(&mut self) {
@@ -115,8 +92,8 @@ impl Screen {
       let srcrect = Rect::new(
         0,
         0,
-        (self.dimension.0 as f32 * CANVAS_FONT_WIDTH).round() as u32,
-        (self.dimension.1 as f32 * CANVAS_FONT_HEIGHT).round() as u32,
+        self.dimension.0 * CANVAS_FONT_WIDTH as u32,
+        self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
       );
       let dstrect = Rect::new(
         info.origin_x as i32,
