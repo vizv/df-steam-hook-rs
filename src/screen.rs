@@ -28,7 +28,6 @@ pub struct Screen {
 
 impl Screen {
   pub fn resize(&mut self, w: u32, h: u32) {
-    log::debug!("resize: {},{}", w, h);
     self.dimension.0 = w;
     self.dimension.1 = h;
 
