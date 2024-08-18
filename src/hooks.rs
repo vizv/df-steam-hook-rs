@@ -82,12 +82,14 @@ fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
 fn erasescreen(gps: usize) {
   unsafe { original!(gps) };
   SCREEN.write().clear();
+  SCREEN_TOP.write().clear();
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn resize(renderer: usize, w: u32, h: u32) {
   unsafe { original!(renderer, w, h) };
   SCREEN.write().resize(w, h);
+  SCREEN_TOP.write().resize(w, h);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
