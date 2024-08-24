@@ -1,11 +1,6 @@
-use std::{mem, ptr};
+use std::{collections::HashMap, mem, ptr};
 
-use sdl2::{
-  pixels::{Color, PixelFormatEnum},
-  rect::Rect,
-  surface::Surface,
-  sys as sdl,
-};
+use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{font::FONT, raw};
 
@@ -43,7 +38,7 @@ struct ScreenInfo {
   pub origin_y: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct ScreenChar {
   pub ch: u8,
@@ -61,6 +56,9 @@ pub struct Screen {
   is_top: bool,
   dimension: (u32, u32),
   canvas_ptr: usize,
+  // cache: (content, sc) => surface_ptr
+  prev: HashMap<(String, ScreenChar), usize>,
+  next: HashMap<(String, ScreenChar), usize>,
 }
 
 impl Screen {
@@ -69,6 +67,8 @@ impl Screen {
       is_top,
       dimension: Default::default(),
       canvas_ptr: Default::default(),
+      prev: Default::default(),
+      next: Default::default(),
     }
   }
 
@@ -92,6 +92,7 @@ impl Screen {
   }
 
   pub fn add(&mut self, gps: usize, x: i32, y: i32, content: String, width: usize) {
+    // get screen character struct and flags for this text
     let offset = (x * self.dimension.1 as i32 + y) as usize;
     let screen_offset = if self.is_top { 0x228 } else { 0x1e0 };
 
@@ -101,27 +102,40 @@ impl Screen {
     let flag_base = raw::deref::<usize>(gps + screen_offset + 0x38);
     let flag = raw::deref::<u32>(flag_base + offset * 4);
 
+    // early return: we only renders the top half by shift down by half font height
     if flag & ScreenTexPosFlag::BOTTOM_OF_TEXT as u32 != 0 {
-      // we only renders the top half
       return;
     }
 
+    // render text or get from cache
+    let key = (content.clone(), sc);
+    let surface_ptr = match self.prev.get(&key) {
+      Some(ptr) => ptr.to_owned() as *mut sdl::SDL_Surface,
+      None => {
+        let mut font = FONT.write();
+        let ptr = font.render(content, width as u32 * CANVAS_FONT_WIDTH as u32) as *mut sdl::SDL_Surface;
+        mem::drop(font);
+
+        unsafe { sdl::SDL_SetSurfaceColorMod(ptr, sc.r, sc.g, sc.b) };
+
+        ptr
+      }
+    };
+    self.next.insert(key, surface_ptr as usize);
+
+    // calculate render offset
     let x = CANVAS_FONT_WIDTH * x;
-    let mut y = CANVAS_FONT_HEIGHT as i32 * y;
+    let mut y: i32 = CANVAS_FONT_HEIGHT as i32 * y;
     if flag & ScreenTexPosFlag::TOP_OF_TEXT as u32 != 0 {
-      // shift down by half font height
+      // shift down by half font height for top half
       y += CANVAS_FONT_HEIGHT / 2;
     }
 
+    // render on canvas
     unsafe {
-      let mut font = FONT.write();
-      let width = (width * CANVAS_FONT_WIDTH as usize) as u32;
-      let mut surface = font.render(content, width);
-      let mut rect = Rect::new(x, y, surface.width(), surface.height());
+      let mut rect = Rect::new(x, y, (*surface_ptr).w as u32, (*surface_ptr).h as u32);
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-      surface.set_color_mod(Color::RGB(sc.r, sc.g, sc.b));
-
-      sdl::SDL_UpperBlit(surface.raw(), ptr::null(), canvas, rect.raw_mut());
+      sdl::SDL_UpperBlit(surface_ptr, ptr::null(), canvas, rect.raw_mut());
     };
   }
 
@@ -130,6 +144,14 @@ impl Screen {
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
       sdl::SDL_FillRect(canvas, ptr::null(), 0);
     }
+
+    for (k, v) in self.prev.iter() {
+      if !self.next.contains_key(k) {
+        unsafe { sdl::SDL_FreeSurface(v.to_owned() as *mut sdl::SDL_Surface) };
+      }
+    }
+
+    self.prev = mem::take(&mut self.next);
   }
 
   pub fn render(&mut self, renderer: usize) {
