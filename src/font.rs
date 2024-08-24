@@ -3,6 +3,7 @@ use cosmic_text::fontdb::{Database, Source};
 use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
+use std::mem;
 use std::path::PathBuf;
 
 use crate::config::CONFIG;
@@ -35,7 +36,7 @@ impl Font {
     }
   }
 
-  pub fn render(&mut self, string: String, width: u32) -> Surface {
+  pub fn render(&mut self, string: String, width: u32) -> usize {
     let metrics = Metrics::new(CJK_FONT_SIZE as f32, CJK_FONT_SIZE as f32);
     let mut buffer = Buffer::new(&mut self.font_system, metrics);
     let mut buffer = buffer.borrow_with(&mut self.font_system);
@@ -58,8 +59,10 @@ impl Font {
         buffer[offset * 4 + 3] = c.a();
       });
     });
+    let surface_ptr = surface.raw() as usize;
+    mem::forget(surface);
 
-    return surface;
+    return surface_ptr;
   }
 
   fn load(path: &str) -> Result<FontSystem> {
