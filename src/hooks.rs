@@ -1,7 +1,9 @@
 use anyhow::Result;
 use retour::static_detour;
+use unicode_width::UnicodeWidthStr;
 
 use crate::config::CONFIG;
+use crate::cxxstring::CxxString;
 use crate::dictionary::DICTIONARY;
 use crate::global::GPS;
 use crate::screen::{SCREEN, SCREEN_TOP};
@@ -17,6 +19,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_resize()?;
   attach_update_all()?;
   attach_update_tile()?;
+
   Ok(())
 }
 
@@ -28,6 +31,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_resize()?;
   enable_update_all()?;
   enable_update_tile()?;
+
   Ok(())
 }
 
@@ -39,6 +43,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_resize()?;
   disable_update_all()?;
   disable_update_tile()?;
+
   Ok(())
 }
 
@@ -49,33 +54,48 @@ fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
   )
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst(gps: usize, str: usize, just: u8, space: i32) {
-  let mut content = raw::deref_string(str);
+fn dummy_content(width: usize) -> CxxString {
+  let mut dummy: Vec<u8> = Vec::new();
+  dummy.resize(width + 1, 32);
+  dummy[width] = 0;
+  let (ptr, len, _) = dummy.into_raw_parts();
+  unsafe { CxxString::new(ptr, len) }
+}
+
+fn translate(string: usize) -> (String, usize) {
+  let mut content = raw::deref_string(string);
   if let Some(translated) = DICTIONARY.get(&content) {
     content = translated.to_owned();
   }
-
-  let (x, y) = gps_get_screen_coord(gps);
-  SCREEN.write().add(x, y, content, 0);
+  let width = (content.width() as f32 * 6.0 / 8.0).ceil() as usize;
+  (content, width)
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst_top(gps: usize, str: usize, just: u8, space: i32) {
-  let content = raw::deref_string(str);
+fn addst(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
-  SCREEN_TOP.write().add(x, y, content, 0);
+  let (content, width) = translate(string);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+
+  SCREEN.write().add(gps, x, y, content, width);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-fn addst_flag(gps: usize, str: usize, just: u8, space: i32, sflag: u32) {
-  let mut content = raw::deref_string(str);
-  if let Some(translated) = DICTIONARY.get(&content) {
-    content = translated.to_owned();
-  }
-
+fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
-  SCREEN.write().add(x, y, content, sflag);
+  let (content, width) = translate(string);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+
+  SCREEN_TOP.write().add(gps, x, y, content, width);
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
+  let (x, y) = gps_get_screen_coord(gps);
+  let (content, width) = translate(string);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space, sflag) };
+
+  SCREEN.write().add(gps, x, y, content, width);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
