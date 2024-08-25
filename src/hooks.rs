@@ -5,6 +5,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::config::CONFIG;
 use crate::cxxstring::CxxString;
 use crate::dictionary::DICTIONARY;
+use crate::enums::ScreenTexPosFlag;
 use crate::global::GPS;
 use crate::screen::{SCREEN, SCREEN_TOP};
 use crate::{raw, utils};
@@ -15,6 +16,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst()?;
   attach_addst_top()?;
   attach_addst_flag()?;
+  attach_addchar_flag()?;
   attach_erasescreen()?;
   attach_gps_allocate()?;
   attach_resize()?;
@@ -28,6 +30,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst()?;
   enable_addst_top()?;
   enable_addst_flag()?;
+  enable_addchar_flag()?;
   enable_gps_allocate()?;
   enable_erasescreen()?;
   enable_resize()?;
@@ -41,6 +44,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst()?;
   disable_addst_top()?;
   disable_addst_flag()?;
+  disable_addchar_flag()?;
   disable_gps_allocate()?;
   disable_erasescreen()?;
   disable_resize()?;
@@ -102,6 +106,16 @@ fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space, sflag) };
 
   SCREEN.write().add(gps, x, y, content, width);
+}
+
+#[cfg_attr(target_os = "linux", hook(bypass))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
+  if ScreenTexPosFlag::from_bits_retain(sflag).contains(ScreenTexPosFlag::TOP_OF_TEXT) {
+    return;
+  }
+
+  unsafe { original!(gps, c, advance, sflag) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]

@@ -63,6 +63,7 @@ pub struct OffsetsValues {
   pub addst: Option<usize>,
   pub addst_top: Option<usize>,
   pub addst_flag: Option<usize>,
+  pub addchar_flag: Option<usize>,
   pub erasescreen: Option<usize>,
   pub gps_allocate: Option<usize>,
   pub update_all: Option<usize>,
