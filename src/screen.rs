@@ -7,6 +7,12 @@ use crate::{font::FONT, raw};
 const CANVAS_FONT_WIDTH: i32 = 8 * 2;
 const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
 
+// TODO: move to config
+#[cfg(target_os = "linux")]
+const SCREEN_INFO_OFFSET: usize = 0x160;
+#[cfg(target_os = "windows")]
+const SCREEN_INFO_OFFSET: usize = 0x168;
+
 // TODO: consider to use bitflags crate
 #[allow(dead_code, non_camel_case_types)]
 #[repr(u32)]
@@ -160,7 +166,7 @@ impl Screen {
     }
 
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let screen = raw::deref::<ScreenInfo>(renderer + 0x160);
+    let screen = raw::deref::<ScreenInfo>(renderer + SCREEN_INFO_OFFSET);
 
     unsafe {
       let sdl_renderer = raw::deref(renderer + 0x108);
