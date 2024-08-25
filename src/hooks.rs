@@ -16,6 +16,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst_top()?;
   attach_addst_flag()?;
   attach_erasescreen()?;
+  attach_gps_allocate()?;
   attach_resize()?;
   attach_update_all()?;
   attach_update_tile()?;
@@ -27,6 +28,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst()?;
   enable_addst_top()?;
   enable_addst_flag()?;
+  enable_gps_allocate()?;
   enable_erasescreen()?;
   enable_resize()?;
   enable_update_all()?;
@@ -39,6 +41,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst()?;
   disable_addst_top()?;
   disable_addst_flag()?;
+  disable_gps_allocate()?;
   disable_erasescreen()?;
   disable_resize()?;
   disable_update_all()?;
@@ -109,18 +112,18 @@ fn erasescreen(gps: usize) {
   SCREEN_TOP.write().clear();
 }
 
-#[cfg(target_os = "linux")]
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(bypass))]
 fn resize(renderer: usize, w: u32, h: u32) {
   unsafe { original!(renderer, w, h) };
   SCREEN.write().resize(w, h);
   SCREEN_TOP.write().resize(w, h);
 }
 
-// Windows function is optimized to inline function, so the signature is different
-#[cfg(target_os = "windows")]
+// `resize` function has been optimized as inline function for Windows versions, hook `gps_allocate` instead
+#[cfg_attr(target_os = "linux", hook(bypass))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn resize(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
+fn gps_allocate(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
   unsafe { original!(renderer, w, h, screen_x, screen_y, tile_dim_x, tile_dim_y) };
   SCREEN.write().resize(w, h);
   SCREEN_TOP.write().resize(w, h);
@@ -138,17 +141,11 @@ struct Dimension {
   y: i32,
 }
 
-// TODO: move to config
-#[cfg(target_os = "linux")]
-const DIMENSION_OFFSET: usize = 0xa00;
-#[cfg(target_os = "windows")]
-const DIMENSION_OFFSET: usize = 0x6cc;
-
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
-  let dim = raw::deref::<Dimension>(GPS.to_owned() + DIMENSION_OFFSET);
+  let dim = raw::deref::<Dimension>(GPS.to_owned() + CONFIG.offset.as_ref().unwrap().gps_offset_dimension.unwrap());
 
   // hack to render text after the last update_tile in update_all
   // TODO: consider re-write update_all function completely according to g_src
