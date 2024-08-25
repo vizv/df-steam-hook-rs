@@ -2,27 +2,10 @@ use std::{collections::HashMap, mem, ptr};
 
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
-use crate::{config::CONFIG, font::FONT, raw};
+use crate::{config::CONFIG, enums::ScreenTexPosFlag, font::FONT, raw};
 
 const CANVAS_FONT_WIDTH: i32 = 8 * 2;
 const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
-
-// TODO: consider to use bitflags crate
-#[allow(dead_code, non_camel_case_types)]
-#[repr(u32)]
-enum ScreenTexPosFlag {
-  None = 0,
-  GRAYSCALE = 0b1,
-  ADDCOLOR = 0b10,
-  ANCHOR_SUBORDINATE = 0b100,
-  TOP_OF_TEXT = 0b1000,
-  BOTTOM_OF_TEXT = 0b10000,
-  ANCHOR_USE_SCREEN_COLOR = 0b100000,
-  ANCHOR_X_COORD = 0b111111000000,
-  X_COORD_SHIFT = 6,
-  ANCHOR_Y_COORD = 0b111111000000000000,
-  ANCHOR_Y_COORD_SHIFT = 12,
-}
 
 #[static_init::dynamic]
 pub static mut SCREEN: Screen = Screen::new(false);
@@ -102,8 +85,8 @@ impl Screen {
     let flag_base = raw::deref::<usize>(gps + screen_offset + 0x38);
     let flag = raw::deref::<u32>(flag_base + offset * 4);
 
-    // early return: we only renders the top half by shift down by half font height
-    if flag & ScreenTexPosFlag::BOTTOM_OF_TEXT as u32 != 0 {
+    // early return: we only renders the bottom half by shift up by half font height
+    if ScreenTexPosFlag::from_bits_retain(flag).contains(ScreenTexPosFlag::TOP_OF_TEXT) {
       return;
     }
 
@@ -126,9 +109,9 @@ impl Screen {
     // calculate render offset
     let x = CANVAS_FONT_WIDTH * x;
     let mut y: i32 = CANVAS_FONT_HEIGHT as i32 * y;
-    if flag & ScreenTexPosFlag::TOP_OF_TEXT as u32 != 0 {
-      // shift down by half font height for top half
-      y += CANVAS_FONT_HEIGHT / 2;
+    if ScreenTexPosFlag::from_bits_retain(flag).contains(ScreenTexPosFlag::BOTTOM_OF_TEXT) {
+      // shift up by half font height for bottom half
+      y -= CANVAS_FONT_HEIGHT / 2;
     }
 
     // render on canvas
@@ -160,7 +143,8 @@ impl Screen {
     }
 
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let screen = raw::deref::<ScreenInfo>(renderer + CONFIG.offset.as_ref().unwrap().renderer_offset_screen_info.unwrap());
+    let screen =
+      raw::deref::<ScreenInfo>(renderer + CONFIG.offset.as_ref().unwrap().renderer_offset_screen_info.unwrap());
 
     unsafe {
       let sdl_renderer = raw::deref(renderer + 0x108);
