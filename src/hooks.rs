@@ -20,6 +20,9 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_update_all()?;
   attach_update_tile()?;
 
+  attach_add_paragraph()?;
+  attach_parse_markup_text()?;
+  attach_render_help_dialog()?;
   Ok(())
 }
 
@@ -32,6 +35,9 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_update_all()?;
   enable_update_tile()?;
 
+  enable_add_paragraph()?;
+  enable_parse_markup_text()?;
+  enable_render_help_dialog()?;
   Ok(())
 }
 
@@ -44,6 +50,9 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_update_all()?;
   disable_update_tile()?;
 
+  disable_add_paragraph()?;
+  disable_parse_markup_text()?;
+  disable_render_help_dialog()?;
   Ok(())
 }
 
@@ -146,4 +155,40 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
   }
 
   SCREEN.write().render(renderer);
+}
+
+#[cfg_attr(
+  target_os = "linux",
+  hook(
+    module = "self",
+    symbol = "_ZN17curses_text_boxst13add_paragraphERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi"
+  )
+)]
+fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
+  let mut content = raw::deref_string(src);
+  unsafe {
+    original!(text_box, src, para_width);
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
+fn parse_markup_text(markup_text_box: usize, src: usize) {
+  unsafe {
+    let mut markup_text = raw::deref_string(src);
+    // TODO: translate the whole text like help texts (0x21da0f0)
+    // TODO: may need regexp for some scenarios like world generation status (0x22fa458)
+    // TODO: log unknown markup_text_box (during world generation)
+    // examples: (they are coming from "data/vanilla/vanilla_buildings/objects/building_custom.txt")
+    // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
+    // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
+    log::info!("??? 0x{:x} {}", markup_text_box, markup_text);
+    original!(markup_text_box, src);
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
+fn render_help_dialog(this: usize) {
+  unsafe {
+    original!(this);
+  }
 }
