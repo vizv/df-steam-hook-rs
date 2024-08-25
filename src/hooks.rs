@@ -72,6 +72,7 @@ fn translate(string: usize) -> (String, usize) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
   let (content, width) = translate(string);
@@ -81,6 +82,7 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
   let (content, width) = translate(string);
@@ -90,6 +92,7 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   let (x, y) = gps_get_screen_coord(gps);
   let (content, width) = translate(string);
@@ -99,12 +102,14 @@ fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn erasescreen(gps: usize) {
   unsafe { original!(gps) };
   SCREEN.write().clear();
   SCREEN_TOP.write().clear();
 }
 
+#[cfg(target_os = "linux")]
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 fn resize(renderer: usize, w: u32, h: u32) {
   unsafe { original!(renderer, w, h) };
@@ -112,7 +117,17 @@ fn resize(renderer: usize, w: u32, h: u32) {
   SCREEN_TOP.write().resize(w, h);
 }
 
+// Windows function is optimized to inline function, so the signature is different
+#[cfg(target_os = "windows")]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn resize(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
+  unsafe { original!(renderer, w, h, screen_x, screen_y, tile_dim_x, tile_dim_y) };
+  SCREEN.write().resize(w, h);
+  SCREEN_TOP.write().resize(w, h);
+}
+
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
   SCREEN_TOP.write().render(renderer);
@@ -123,10 +138,17 @@ struct Dimension {
   y: i32,
 }
 
+// TODO: move to config
+#[cfg(target_os = "linux")]
+const DIMENSION_OFFSET: usize = 0xa00;
+#[cfg(target_os = "windows")]
+const DIMENSION_OFFSET: usize = 0x6cc;
+
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
-  let dim = raw::deref::<Dimension>(GPS.to_owned() + 0xa00);
+  let dim = raw::deref::<Dimension>(GPS.to_owned() + DIMENSION_OFFSET);
 
   // hack to render text after the last update_tile in update_all
   // TODO: consider re-write update_all function completely according to g_src

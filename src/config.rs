@@ -55,7 +55,17 @@ pub struct OffsetsMetadata {
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
-pub struct OffsetsValues {}
+pub struct OffsetsValues {
+  pub enabler: Option<usize>,
+  pub gps: Option<usize>,
+  pub addst: Option<usize>,
+  pub addst_top: Option<usize>,
+  pub addst_flag: Option<usize>,
+  pub erasescreen: Option<usize>,
+  pub resize: Option<usize>,
+  pub update_all: Option<usize>,
+  pub update_tile: Option<usize>,
+}
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
