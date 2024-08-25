@@ -6,14 +6,13 @@ extern crate toml;
 
 mod config;
 mod constants;
-mod cp437;
-mod cxxstring;
+mod df;
 mod dictionary;
-mod enums;
+mod encodings;
 mod font;
 mod global;
 mod hooks;
-mod raw;
+mod markup;
 mod screen;
 mod utils;
 mod watchdog;

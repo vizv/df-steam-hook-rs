@@ -1,3 +1,4 @@
+// TODO: move to df::globals
 use crate::config::CONFIG;
 
 use crate::utils;
@@ -22,6 +23,14 @@ pub static ENABLER: usize = {
   }
 };
 
+#[static_init::dynamic]
+pub static GAME: usize = {
+  match CONFIG.offset.is_some() {
+    true => utils::address(CONFIG.offset.as_ref().unwrap().game.unwrap()),
+    false => 0 as usize,
+  }
+};
+
 #[cfg(target_os = "linux")]
 #[static_init::dynamic]
 pub static GPS: usize = unsafe {
@@ -36,6 +45,28 @@ pub static GPS: usize = unsafe {
 pub static GPS: usize = {
   match CONFIG.offset.is_some() {
     true => utils::address(CONFIG.offset.as_ref().unwrap().gps.unwrap()),
+    false => 0 as usize,
+  }
+};
+
+#[allow(non_upper_case_globals)]
+#[cfg(target_os = "linux")]
+#[static_init::dynamic]
+pub static get_key_display: fn(usize, usize, i32) = unsafe {
+  match CONFIG.symbol.is_some() {
+    true => {
+      let symbol = CONFIG.symbol.as_ref().unwrap().get_key_display.as_ref().unwrap();
+      utils::symbol_handle::<fn(usize, usize, i32)>(&symbol[0], &symbol[1])
+    }
+    false => move |_, _, _| {},
+  }
+};
+
+#[cfg(target_os = "windows")]
+#[static_init::dynamic]
+pub static get_key_display: fn(usize, usize, i32) = {
+  match CONFIG.offset.is_some() {
+    true => utils::address(CONFIG.offset.as_ref().unwrap().get_key_display.unwrap()),
     false => 0 as usize,
   }
 };
