@@ -197,6 +197,7 @@ fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
 fn mtb_set_width(markup_text_box: usize, current_width: i32) {
   // log::info!("??? 0x{:x} {}", markup_text_box, current_width);
   unsafe { original!(markup_text_box, current_width) };
+  MARKUP.write().layout(markup_text_box, current_width);
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]

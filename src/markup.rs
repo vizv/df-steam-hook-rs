@@ -63,8 +63,8 @@ struct MarkupWord {
   green: u8,
   blue: u8,
   link_index: i32,
-  px: u32,
-  py: u32,
+  px: i32,
+  py: i32,
   flags: MarkupWordFlag,
 }
 
@@ -72,14 +72,14 @@ struct MarkupWord {
 struct MarkupTextBox {
   word: Vec<MarkupWord>,
   link: Vec<MarkupLink>,
-  current_width: u32,
-  max_y: u32,
+  current_width: i32,
+  max_y: i32,
   environment: usize, // pointer, not implemented
 }
 
 impl MarkupTextBox {
   // See DFHack: library/modules/Gui.cpp - void Gui::MTB_parse(df::markup_text_boxst *mtb, string parse_text)
-  fn parse(content: &String) -> Self {
+  pub fn parse(content: &String) -> Self {
     // log::warn!("??? MarkupText::parse({})", content);
     let mut text: MarkupTextBox = Default::default();
 
@@ -389,6 +389,86 @@ impl MarkupTextBox {
     text
   }
 
+  // See DFHack: library/modules/Gui.cpp - void Gui::MTB_set_width(df::markup_text_boxst *mtb, int32_t width)
+  pub fn set_width(&mut self, width: i32) {
+    if self.current_width == width {
+      return;
+    }
+
+    self.max_y = 0;
+    self.current_width = width;
+
+    let mut remain_width = width;
+    let mut px_val = 0;
+    let mut py_val = 0;
+
+    let word_len = self.word.len();
+    for (i, cur_word) in &mut self.word.iter_mut().enumerate() {
+      if cur_word.flags.contains(MarkupWordFlag::NEWLINE) {
+        remain_width = 0;
+        continue;
+      }
+
+      if cur_word.flags.contains(MarkupWordFlag::BLANK_LINE) {
+        remain_width = 0;
+        px_val = 0;
+        py_val += 1;
+        continue;
+      }
+
+      if cur_word.flags.contains(MarkupWordFlag::INDENT) {
+        remain_width = width;
+        px_val = 4;
+        py_val += 1;
+        continue;
+      }
+
+      let str_size = cur_word.str.chars().count() as i32;
+      if remain_width < str_size {
+        remain_width = width;
+        px_val = 0;
+        py_val += 1;
+      }
+
+      let only_char = if str_size == 1 {
+        cur_word.str.chars().next().unwrap()
+      } else {
+        '\0'
+      };
+      match only_char {
+        '.' | ',' | '?' | '!' => {
+          if i + 1 < word_len - 1 && px_val == 0 && remain_width < 3 {
+            remain_width = width;
+            px_val = 0;
+            py_val += 1;
+          } else if px_val > 0 {
+            cur_word.px = px_val - 1;
+            cur_word.py = py_val;
+
+            if self.max_y < py_val {
+              self.max_y = py_val;
+            }
+
+            remain_width -= 1;
+            px_val += 1;
+            continue;
+          }
+        }
+        _ => {}
+      }
+
+      cur_word.px = px_val;
+      cur_word.py = py_val;
+
+      if self.max_y < py_val {
+        self.max_y = py_val;
+      }
+
+      remain_width -= str_size + 1;
+      px_val += str_size + 1;
+    }
+  }
+
   fn grab_token_string_pos(source: &Vec<char>, pos: usize, compc: char) -> String {
     let mut out = String::new();
 
@@ -431,12 +511,19 @@ pub struct Markup {
 impl Markup {
   pub fn add(&mut self, address: usize, content: &String) {
     let text = MarkupTextBox::parse(content);
-    // log::info!("??? {:?}", text);
-
-    for word in &text.word {
-      log::info!("??? {}", word.str);
-    }
 
     self.items.insert(address, text);
+  }
+
+  pub fn layout(&mut self, address: usize, current_width: i32) {
+    if let Some(text) = self.items.get_mut(&address) {
+      text.set_width(current_width);
+
+      // log::info!("??? {:?}", text);
+
+      for word in &text.word {
+        log::info!("??? {:?}", word);
+      }
+    }
   }
 }
