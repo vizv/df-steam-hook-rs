@@ -180,6 +180,7 @@ fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
 fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
   let content = translate(src);
+  log::warn!("0x{markup_text_box:x}: content = {content}");
 
   unsafe { original!(markup_text_box, src) };
 
@@ -200,9 +201,18 @@ fn mtb_set_width(markup_text_box: usize, current_width: i32) {
   MARKUP.write().layout(markup_text_box, current_width);
 }
 
+static mut SAVED_CONTEXT: u32 = u32::MAX;
+
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
-fn render_help_dialog(this: usize) {
+fn render_help_dialog(help: usize) {
   unsafe {
-    original!(this);
+    let context = raw::deref::<u32>(help + 0xc);
+    if SAVED_CONTEXT != context {
+      SAVED_CONTEXT = context;
+      log::warn!("context = {}", context);
+    }
+  };
+  unsafe {
+    original!(help);
   }
 }

@@ -521,9 +521,9 @@ impl Markup {
 
       // log::info!("??? {:?}", text);
 
-      for word in &text.word {
-        log::info!("??? {:?}", word);
-      }
+      // for word in &text.word {
+      //   log::info!("??? {:?}", word);
+      // }
     }
   }
 }
