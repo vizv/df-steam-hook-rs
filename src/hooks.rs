@@ -174,14 +174,16 @@ fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
 fn parse_markup_text(markup_text_box: usize, src: usize) {
   unsafe {
-    let mut markup_text = raw::deref_string(src);
+    let content = translate(src);
+    // let mut markup_text = raw::deref_string(src);
+
     // TODO: translate the whole text like help texts (0x21da0f0)
-    // TODO: may need regexp for some scenarios like world generation status (0x22fa458)
+    // TODO: may need regexp for some scenarios like world generation status (0x22fa459)
     // TODO: log unknown markup_text_box (during world generation)
     // examples: (they are coming from "data/vanilla/vanilla_buildings/objects/building_custom.txt")
     // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
     // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
-    log::info!("??? 0x{:x} {}", markup_text_box, markup_text);
+    log::info!("??? 0x{:x} {}", markup_text_box, content);
     original!(markup_text_box, src);
   }
 }
