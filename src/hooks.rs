@@ -1,5 +1,5 @@
 use anyhow::Result;
-use cxx::let_cxx_string;
+use cxx::{let_cxx_string, CxxVector};
 use retour::static_detour;
 
 use crate::config::CONFIG;
@@ -25,6 +25,9 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_mtb_process_string_to_lines()?;
   attach_mtb_set_width()?;
   attach_render_help_dialog()?;
+
+  // attach_debug_get_main_interface_dims()?;
+  // attach_debug_get_dialog_size()?;
   Ok(())
 }
 
@@ -194,23 +197,67 @@ fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
 fn mtb_set_width(markup_text_box: usize, current_width: i32) {
-  // log::info!("??? 0x{:x} {}", markup_text_box, current_width);
+  // log::info!("??? mtb_set_width 0x{markup_text_box:x} {current_width}");
   unsafe { original!(markup_text_box, current_width) };
   MARKUP.write().layout(markup_text_box, current_width);
+  unsafe { *((markup_text_box + 0x30) as *mut i32) = 0 };
 }
 
 static mut SAVED_CONTEXT: u32 = u32::MAX;
 
+// fn x() {
+//   let mut vec = CxxVector::<usize>::new();
+//   // let vec_ptr: usize = unsafe { core::mem::transmute(vec) };
+//   let mut vecz = CxxVector::<usize>::new();
+//   core::mem::swap(&mut vec, &mut vecz);
+// }
+
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
 fn render_help_dialog(help: usize) {
+  // let save = CxxVector::<usize>::new();
+  // let save_ptr: usize = unsafe { core::mem::transmute(save) };
+  // let stub = CxxVector::<usize>::new();
+  // let stub_ptr: usize = unsafe { core::mem::transmute(stub) };
+  let target = help + 0x30;
+
+  // unsafe {
+  //   core::ptr::copy_nonoverlapping(target as *mut u8, save_ptr as *mut u8, 24);
+  //   core::ptr::copy_nonoverlapping(stub_ptr as *mut u8, target as *mut u8, 24);
+  //   // *((target + 0x34) as *mut i32) = 1;
+  // }
+
+  // log::info!("??? render_help_dialog");
   unsafe {
     let context = raw::deref::<u32>(help + 0xc);
     if SAVED_CONTEXT != context {
       SAVED_CONTEXT = context;
-      log::warn!("context = {}", context);
+      // log::warn!("context = {}", context);
     }
   };
   unsafe {
     original!(help);
   }
+
+  // unsafe {
+  //   core::ptr::copy_nonoverlapping(save_ptr as *mut u8, target as *mut u8, 24);
+  //   // *((target + 0x30) as *mut i32) = *((target + 0x30) as *const i32) + 2;
+  // }
+}
+
+#[cfg_attr(target_os = "linux", hook(offset = "0136e770"))]
+fn debug_get_main_interface_dims(game: usize, p1: usize, p2: usize) {
+  unsafe { original!(game, p1, p2) };
+  let p1 = raw::deref::<i32>(p1);
+  let p2 = raw::deref::<i32>(p2);
+  log::info!("debug_get_main_interface_dims({p1},{p2})");
+}
+
+#[cfg_attr(target_os = "linux", hook(offset = "0118fd00"))]
+fn debug_get_dialog_size(help: usize, p1: usize, p2: usize, p3: usize, p4: usize) {
+  unsafe { original!(help, p1, p2, p3, p4) };
+  let p1 = raw::deref::<i32>(p1);
+  let p2 = raw::deref::<i32>(p2);
+  let p3 = raw::deref::<i32>(p3);
+  let p4 = raw::deref::<i32>(p4);
+  log::info!("debug_get_dialog_size({p1},{p2},{p3},{p4})");
 }

@@ -1,7 +1,15 @@
 use bitflags::bitflags;
 use std::collections::HashMap;
 
-use crate::{cjk, global::GPS, raw};
+use crate::{
+  cjk,
+  font::{self, FONT},
+  global::GPS,
+  raw, screen::{self, SCREEN},
+};
+
+const CURSES_FONT_WIDTH: i32 = font::CURSES_FONT_WIDTH as i32;
+const CJK_FONT_SIZE: i32 = font::CJK_FONT_SIZE as i32;
 
 #[static_init::dynamic]
 pub static mut MARKUP: Markup = Default::default();
@@ -63,7 +71,7 @@ struct MarkupWord {
   green: u8,
   blue: u8,
   link_index: i32,
-  px: i32,
+  x: i32,
   py: i32,
   flags: MarkupWordFlag,
 }
@@ -394,16 +402,18 @@ impl MarkupTextBox {
     if self.current_width == width {
       return;
     }
+    log::info!("??? set_width to {:?}", width);
 
     self.max_y = 0;
     self.current_width = width;
 
-    let mut remain_width = width;
-    let mut px_val = 0;
+    let width_in_pixels = width * CURSES_FONT_WIDTH;
+    let mut remain_width = width_in_pixels;
+    let mut x_val = 0;
     let mut py_val = 0;
 
-    let word_len = self.word.len();
-    for (i, cur_word) in &mut self.word.iter_mut().enumerate() {
+    let mut iter = self.word.iter_mut().peekable();
+    while let Some(cur_word) = iter.next() {
       if cur_word.flags.contains(MarkupWordFlag::NEWLINE) {
         remain_width = 0;
         continue;
@@ -411,61 +421,84 @@ impl MarkupTextBox {
 
       if cur_word.flags.contains(MarkupWordFlag::BLANK_LINE) {
         remain_width = 0;
-        px_val = 0;
+        x_val = 0;
         py_val += 1;
         continue;
       }
 
       if cur_word.flags.contains(MarkupWordFlag::INDENT) {
-        remain_width = width;
-        px_val = 4;
+        remain_width = width_in_pixels;
+        x_val = 4 * CURSES_FONT_WIDTH;
         py_val += 1;
         continue;
       }
 
-      let str_size = cur_word.str.chars().count() as i32;
-      if remain_width < str_size {
-        remain_width = width;
-        px_val = 0;
+      let word_width = cur_word.str.chars().map(|ch| FONT.write().get_width(ch) as i32).sum();
+      if remain_width < word_width {
+        remain_width = width_in_pixels;
+        x_val = 0;
         py_val += 1;
       }
 
-      let only_char = if str_size == 1 {
-        cur_word.str.chars().next().unwrap()
-      } else {
-        '\0'
-      };
-      match only_char {
-        '.' | ',' | '?' | '!' => {
-          if i + 1 < word_len - 1 && px_val == 0 && remain_width < 3 {
-            remain_width = width;
-            px_val = 0;
-            py_val += 1;
-          } else if px_val > 0 {
-            cur_word.px = px_val - 1;
+      if let Some(next_word) = iter.peek() {
+        if next_word.str.chars().count() == 1 {
+          let next_char = next_word.str.chars().next().unwrap();
+          if x_val > 0 && remain_width <= (FONT.write().get_width(next_char) as i32 + CURSES_FONT_WIDTH) {
+            match next_char {
+              '.' | ',' | '?' | '!' => {
+                remain_width = width_in_pixels;
+                x_val = 0;
+                py_val += 1;
+              }
+              _ => {}
+            }
+          }
+        }
+      }
+
+      if cur_word.str.chars().count() == 1 && x_val > 0 {
+        let cur_char = cur_word.str.chars().next().unwrap();
+        match cur_char {
+          '.' | ',' | '?' | '!' => {
+            cur_word.x = x_val - CURSES_FONT_WIDTH;
             cur_word.py = py_val;
 
             if self.max_y < py_val {
               self.max_y = py_val;
             }
 
-            remain_width -= 1;
-            px_val += 1;
+            remain_width -= CURSES_FONT_WIDTH;
+            x_val += CURSES_FONT_WIDTH;
             continue;
           }
+          _ => {}
         }
-        _ => {}
       }
 
-      cur_word.px = px_val;
+      cur_word.x = x_val;
       cur_word.py = py_val;
 
       if self.max_y < py_val {
         self.max_y = py_val;
       }
 
-      remain_width -= str_size + 1;
-      px_val += str_size + 1;
+      remain_width -= word_width + CURSES_FONT_WIDTH;
+      x_val += word_width + CURSES_FONT_WIDTH;
+
+      if let Some(next_word) = iter.peek() {
+        if cur_word.str.chars().count() > 0 && next_word.str.chars().count() > 0 {
+          let cur_last_char = cur_word.str.chars().last().unwrap();
+          let next_first_char = next_word.str.chars().next().unwrap();
+          if FONT.write().is_cjk(cur_last_char) && FONT.write().is_cjk(next_first_char) {
+            remain_width += CURSES_FONT_WIDTH;
+            x_val -= CURSES_FONT_WIDTH;
+          }
+        }
+      }
+    }
+
+    for word in &self.word {
+      log::info!("??? {:?}", word);
     }
   }
 
@@ -520,10 +553,6 @@ impl Markup {
       text.set_width(current_width);
 
       // log::info!("??? {:?}", text);
-
-      // for word in &text.word {
-      //   log::info!("??? {:?}", word);
-      // }
     }
   }
 }

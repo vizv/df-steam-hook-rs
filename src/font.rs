@@ -39,6 +39,22 @@ impl Font {
     }
   }
 
+  pub fn get_width(&mut self, ch: char) -> u32 {
+    if self.is_curses(ch) {
+      CURSES_FONT_WIDTH
+    } else {
+      CJK_FONT_SIZE
+    }
+  }
+
+  pub fn is_cjk(&mut self, ch: char) -> bool {
+    !self.is_curses(ch)
+  }
+
+  pub fn is_curses(&mut self, ch: char) -> bool {
+    self.get(ch).1
+  }
+
   pub fn get(&mut self, ch: char) -> (usize, bool) {
     let enabler = ENABLER.to_owned();
     let curses_surface_base =
@@ -56,7 +72,7 @@ impl Font {
           let dx = metrics.xmin;
           let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 4); // Note: only for the "NotoSansMonoCJKsc-Bold" font
           let dy = if dy < 0 { 0 } else { dy };
-          log::info!("??? {ch} {}: {metrics:?} / {dx},{dy}", ch as usize);
+          // log::info!("??? {ch} {}: {metrics:?} / {dx},{dy}", ch as usize);
           for y in 0..metrics.height {
             for x in 0..metrics.width {
               let alpha = (bitmap[y * metrics.width + x] as u16 * 255 / 255) as u8;
