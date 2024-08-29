@@ -6,6 +6,7 @@ use crate::cxxstring::CxxString;
 use crate::dictionary::DICTIONARY;
 use crate::enums::ScreenTexPosFlag;
 use crate::global::GPS;
+use crate::markup::MARKUP;
 use crate::screen::{SCREEN, SCREEN_TOP};
 use crate::{raw, utils};
 
@@ -23,6 +24,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_add_paragraph()?;
   attach_parse_markup_text()?;
   attach_render_help_dialog()?;
+  attach_layout_markup_text()?;
   Ok(())
 }
 
@@ -38,6 +40,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_add_paragraph()?;
   enable_parse_markup_text()?;
   enable_render_help_dialog()?;
+  enable_layout_markup_text()?;
   Ok(())
 }
 
@@ -53,6 +56,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_add_paragraph()?;
   disable_parse_markup_text()?;
   disable_render_help_dialog()?;
+  disable_layout_markup_text()?;
   Ok(())
 }
 
@@ -175,6 +179,7 @@ fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
 fn parse_markup_text(markup_text_box: usize, src: usize) {
   unsafe {
     let content = translate(src);
+    MARKUP.write().add(markup_text_box, &content);
     // let mut markup_text = raw::deref_string(src);
 
     // TODO: translate the whole text like help texts (0x21da0f0)
@@ -183,7 +188,7 @@ fn parse_markup_text(markup_text_box: usize, src: usize) {
     // examples: (they are coming from "data/vanilla/vanilla_buildings/objects/building_custom.txt")
     // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
     // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
-    log::info!("??? 0x{:x} {}", markup_text_box, content);
+    // log::info!("??? 0x{:x} {}", markup_text_box, content);
     original!(markup_text_box, src);
   }
 }
@@ -192,5 +197,13 @@ fn parse_markup_text(markup_text_box: usize, src: usize) {
 fn render_help_dialog(this: usize) {
   unsafe {
     original!(this);
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
+fn layout_markup_text(markup_text_box: usize, current_width: i32) {
+  // log::info!("??? 0x{:x} {}", markup_text_box, current_width);
+  unsafe {
+    original!(markup_text_box, current_width);
   }
 }

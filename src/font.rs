@@ -39,7 +39,7 @@ impl Font {
     }
   }
 
-  fn get(&mut self, ch: char) -> (usize, bool) {
+  pub fn get(&mut self, ch: char) -> (usize, bool) {
     let enabler = ENABLER.to_owned();
     let curses_surface_base =
       raw::deref::<usize>(enabler + CONFIG.offset.as_ref().unwrap().enabler_offset_curses_glyph_texture.unwrap());
@@ -54,7 +54,7 @@ impl Font {
         let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
         surface.with_lock_mut(|buffer| {
           let dx = metrics.xmin;
-          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 3); // Note: only for the "NotoSansMonoCJKsc-Bold" font
+          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 4); // Note: only for the "NotoSansMonoCJKsc-Bold" font
           let dy = if dy < 0 { 0 } else { dy };
           for y in 0..metrics.height {
             for x in 0..metrics.width {

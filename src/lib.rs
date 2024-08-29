@@ -4,6 +4,7 @@
 extern crate serde_derive;
 extern crate toml;
 
+mod cjk;
 mod config;
 mod constants;
 mod cp437;
@@ -13,6 +14,7 @@ mod enums;
 mod font;
 mod global;
 mod hooks;
+mod markup;
 mod raw;
 mod screen;
 mod utils;
