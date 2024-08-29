@@ -8,7 +8,6 @@ mod cjk;
 mod config;
 mod constants;
 mod cp437;
-mod cxxstring;
 mod dictionary;
 mod enums;
 mod font;

@@ -1,8 +1,8 @@
 use anyhow::Result;
+use cxx::let_cxx_string;
 use retour::static_detour;
 
 use crate::config::CONFIG;
-use crate::cxxstring::CxxString;
 use crate::dictionary::DICTIONARY;
 use crate::enums::ScreenTexPosFlag;
 use crate::global::GPS;
@@ -69,14 +69,6 @@ fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
   )
 }
 
-fn dummy_content(width: usize) -> CxxString {
-  let mut dummy: Vec<u8> = Vec::new();
-  dummy.resize(width + 1, 32);
-  dummy[width] = 0;
-  let (ptr, len, _) = dummy.into_raw_parts();
-  unsafe { CxxString::new(ptr, len - 1) }
-}
-
 // FIXME: render the font, get real width, divided by 2, ceil it to curses font width
 fn translate(string: usize) -> String {
   let mut content = raw::deref_string(string);
@@ -93,7 +85,9 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
   let content = translate(string);
 
   let width = SCREEN.write().add(gps, x, y, content, 0);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+  let_cxx_string!(dummy = " ".repeat(width));
+  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  unsafe { original!(gps, dummy_ptr, just, space) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -103,7 +97,9 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let content = translate(string);
 
   let width = SCREEN_TOP.write().add(gps, x, y, content, 0);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+  let_cxx_string!(dummy = " ".repeat(width));
+  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  unsafe { original!(gps, dummy_ptr, just, space) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -113,7 +109,9 @@ fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   let content = translate(string);
 
   let width = SCREEN.write().add(gps, x, y, content, sflag);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space, sflag) };
+  let_cxx_string!(dummy = " ".repeat(width));
+  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  unsafe { original!(gps, dummy_ptr, just, space, sflag) };
 }
 
 #[cfg_attr(target_os = "linux", hook(bypass))]
