@@ -56,10 +56,11 @@ pub struct OffsetsMetadata {
 #[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct OffsetsValues {
-  pub renderer_offset_screen_info: Option<usize>,
-  pub gps_offset_dimension: Option<usize>,
   pub enabler: Option<usize>,
+  pub enabler_offset_curses_glyph_texture: Option<usize>,
   pub gps: Option<usize>,
+  pub gps_offset_dimension: Option<usize>,
+  pub renderer_offset_screen_info: Option<usize>,
   pub addst: Option<usize>,
   pub addst_top: Option<usize>,
   pub addst_flag: Option<usize>,

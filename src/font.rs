@@ -1,27 +1,28 @@
 use anyhow::Result;
-use cosmic_text::fontdb::{Database, Source};
-use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache};
-use sdl2::pixels::PixelFormatEnum;
-use sdl2::surface::Surface;
-use std::mem;
-use std::path::PathBuf;
+use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
+use std::collections::HashMap;
+use std::io::Read;
+use std::{mem, ptr};
 
 use crate::config::CONFIG;
-use crate::utils;
+use crate::global::ENABLER;
+use crate::{raw, utils};
 
+pub const CURSES_FONT_WIDTH: u32 = 16;
 pub const CJK_FONT_SIZE: u32 = 24;
 
 #[static_init::dynamic]
 pub static mut FONT: Font = Font::new(&CONFIG.settings.font);
 
 pub struct Font {
-  font_system: FontSystem,
+  font: fontdue::Font,
+  cache: HashMap<char, usize>,
 }
 
 impl Font {
   fn new(path: &'static str) -> Self {
     Self {
-      font_system: match Font::load(path) {
+      font: match Font::load(path) {
         Ok(value) => value,
         Err(_) => {
           log::error!("unable to load font {path}");
@@ -30,46 +31,82 @@ impl Font {
             format!("Unable to load font {path}").as_str(),
             utils::MessageIconType::Warning,
           );
-          FontSystem::new()
+          panic!("unable to load font {path}")
         }
       },
+      cache: Default::default(),
     }
   }
 
-  pub fn render(&mut self, string: String, width: u32) -> usize {
-    let metrics = Metrics::new(CJK_FONT_SIZE as f32, CJK_FONT_SIZE as f32);
-    let mut buffer = Buffer::new(&mut self.font_system, metrics);
-    let mut buffer = buffer.borrow_with(&mut self.font_system);
-    buffer.set_text(&string, Attrs::new(), Shaping::Advanced);
-    buffer.shape_until_scroll(true);
-    const TEXT_COLOR: Color = Color::rgb(0xff, 0xff, 0xff);
-    let mut swash_cache = SwashCache::new();
-    let height = CJK_FONT_SIZE;
-    let mut surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
-    buffer.draw(&mut swash_cache, TEXT_COLOR, |x, y, w, h, c| {
-      surface.with_lock_mut(|buffer| {
-        if c.a() == 0 || x < 0 || x >= width as i32 || y < 0 || y >= height as i32 || w != 1 || h != 1 {
-          return;
-        }
+  fn get(&mut self, ch: char) -> (usize, bool) {
+    let enabler = ENABLER.to_owned();
+    let curses_surface_base =
+      raw::deref::<usize>(enabler + CONFIG.offset.as_ref().unwrap().enabler_offset_curses_glyph_texture.unwrap());
 
-        let offset = y as usize * width as usize + x as usize;
-        buffer[offset * 4 + 0] = c.r();
-        buffer[offset * 4 + 1] = c.g();
-        buffer[offset * 4 + 2] = c.b();
-        buffer[offset * 4 + 3] = c.a();
-      });
-    });
+    if (ch as u32) < 256 {
+      return (raw::deref::<usize>(curses_surface_base + (ch as usize * 8)), true);
+    };
+
+    if !self.cache.contains_key(&ch) {
+      let (metrics, bitmap) = self.font.rasterize(ch, CJK_FONT_SIZE as f32);
+      if metrics.advance_width as u32 == CJK_FONT_SIZE && metrics.advance_height as u32 == CJK_FONT_SIZE {
+        let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
+        surface.with_lock_mut(|buffer| {
+          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 3); // Note: only for the "NotoSansMonoCJKsc-Bold" font
+          let dy = if dy < 0 { 0 } else { dy as usize };
+          for y in 0..metrics.height {
+            for x in 0..metrics.width {
+              let alpha = (bitmap[y * metrics.width + x] as u16 * 255 / 255) as u8;
+              let offset = (y + dy) * CJK_FONT_SIZE as usize + x;
+              buffer[offset * 4 + 0] = 255;
+              buffer[offset * 4 + 1] = 255;
+              buffer[offset * 4 + 2] = 255;
+              buffer[offset * 4 + 3] = alpha;
+            }
+          }
+        });
+        let surface_ptr = surface.raw() as usize;
+        mem::forget(surface);
+
+        self.cache.insert(ch, surface_ptr);
+      }
+    }
+
+    if let Some(surface_ptr) = self.cache.get(&ch) {
+      return (surface_ptr.to_owned(), false);
+    } else {
+      // fallback to curses space glyph
+      return (raw::deref::<usize>(curses_surface_base + (32 * 8)), true);
+    }
+  }
+
+  // FIXME: also returns the real width
+  pub fn render(&mut self, string: String) -> (usize, u32) {
+    let width = CJK_FONT_SIZE * string.chars().count() as u32;
+    let height = CJK_FONT_SIZE;
+    let mut x = 0;
+    let surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
+    for ch in string.chars() {
+      let (surface_ptr, is_curses) = self.get(ch);
+      let glyph_surface = surface_ptr as *mut sdl::SDL_Surface;
+      let w = if is_curses { CURSES_FONT_WIDTH } else { CJK_FONT_SIZE };
+      let h = CJK_FONT_SIZE;
+      let mut rect = Rect::new(x, 0, w, h);
+      unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), surface.raw(), rect.raw_mut()) };
+      x += w as i32;
+    }
+
     let surface_ptr = surface.raw() as usize;
     mem::forget(surface);
 
-    return surface_ptr;
+    return (surface_ptr, x as u32);
   }
 
-  fn load(path: &str) -> Result<FontSystem> {
-    let font = Source::File(PathBuf::from(path));
-    let mut db = Database::new();
-    db.load_font_source(font);
+  fn load(path: &str) -> Result<fontdue::Font> {
+    let mut file = std::fs::File::open(path)?;
+    let mut data: Vec<u8> = Vec::new();
+    file.read_to_end(&mut data)?;
 
-    Ok(FontSystem::new_with_locale_and_db(Default::default(), db))
+    fontdue::Font::from_bytes(data, fontdue::FontSettings::default()).map_err(|err| anyhow::anyhow!(err))
   }
 }
