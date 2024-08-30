@@ -60,7 +60,7 @@ fn dummy_content(width: usize) -> CxxString {
   dummy.resize(width + 1, 32);
   dummy[width] = 0;
   let (ptr, len, _) = dummy.into_raw_parts();
-  unsafe { CxxString::new(ptr, len) }
+  unsafe { CxxString::new(ptr, len - 1) }
 }
 
 fn translate(string: usize) -> (String, usize) {
