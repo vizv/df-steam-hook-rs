@@ -77,7 +77,7 @@ pub struct SymbolsValues {
   pub addst: Option<Vec<String>>,
   pub addst_top: Option<Vec<String>>,
   pub addst_flag: Option<Vec<String>>,
-  pub resize: Option<Vec<String>>,
+  pub gps_allocate: Option<Vec<String>>,
   pub update_all: Option<Vec<String>>,
   pub update_tile: Option<Vec<String>>,
 }

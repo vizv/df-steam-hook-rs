@@ -18,7 +18,6 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst_flag()?;
   attach_addchar_flag()?;
   attach_gps_allocate()?;
-  attach_resize()?;
   attach_update_all()?;
   attach_update_tile()?;
 
@@ -31,7 +30,6 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst_flag()?;
   enable_addchar_flag()?;
   enable_gps_allocate()?;
-  enable_resize()?;
   enable_update_all()?;
   enable_update_tile()?;
 
@@ -44,7 +42,6 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst_flag()?;
   disable_addchar_flag()?;
   disable_gps_allocate()?;
-  disable_resize()?;
   disable_update_all()?;
   disable_update_tile()?;
 
@@ -116,15 +113,6 @@ fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(bypass))]
-fn resize(renderer: usize, w: u32, h: u32) {
-  unsafe { original!(renderer, w, h) };
-  SCREEN.write().resize(w, h);
-  SCREEN_TOP.write().resize(w, h);
-}
-
-// `resize` function has been optimized as inline function for Windows versions, hook `gps_allocate` instead
-#[cfg_attr(target_os = "linux", hook(bypass))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn gps_allocate(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
   unsafe { original!(renderer, w, h, screen_x, screen_y, tile_dim_x, tile_dim_y) };
