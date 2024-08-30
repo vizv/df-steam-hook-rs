@@ -6,6 +6,7 @@ extern crate toml;
 
 mod config;
 mod constants;
+mod cp437;
 mod cxxstring;
 mod dictionary;
 mod enums;
