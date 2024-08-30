@@ -5,7 +5,8 @@ use crate::{
   cjk,
   font::{self, FONT},
   global::GPS,
-  raw, screen::{self, SCREEN},
+  raw,
+  screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP},
 };
 
 const CURSES_FONT_WIDTH: i32 = font::CURSES_FONT_WIDTH as i32;
@@ -496,10 +497,6 @@ impl MarkupTextBox {
         }
       }
     }
-
-    for word in &self.word {
-      log::info!("??? {:?}", word);
-    }
   }
 
   fn grab_token_string_pos(source: &Vec<char>, pos: usize, compc: char) -> String {
@@ -553,6 +550,43 @@ impl Markup {
       text.set_width(current_width);
 
       // log::info!("??? {:?}", text);
+
+      // XXX debug
+      {
+        let gps = GPS.to_owned();
+        let color_base = gps + 0x8c; // TODO: check Windows offset
+        let color = raw::deref_mut::<screen::ColorInfo>(color_base);
+
+        // 0x1f80340
+        let saved_screenx = raw::deref::<i32>(gps + 0x84);
+        let saved_screeny = raw::deref::<i32>(gps + 0x88);
+
+        for word in &text.word {
+          let x = word.x;
+          let y = word.py * CANVAS_FONT_HEIGHT;
+          unsafe {
+            (*raw::deref_mut::<i32>(gps + 0x84)) = x;
+            (*raw::deref_mut::<i32>(gps + 0x88)) = y;
+            (*color).use_old_16_colors = false;
+            (*color).screen_color_r = word.red;
+            (*color).screen_color_g = word.green;
+            (*color).screen_color_b = word.blue;
+          }
+          SCREEN_TOP.write().add(
+            gps,
+            x + CANVAS_FONT_WIDTH * 130,
+            y + CANVAS_FONT_HEIGHT * 11,
+            word.str.clone(),
+            0,
+          );
+          log::info!("??? 0x{gps:x} {:?}", word);
+        }
+
+        unsafe {
+          (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
+          (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
+        }
+      }
     }
   }
 }

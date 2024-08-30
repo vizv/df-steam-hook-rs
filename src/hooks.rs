@@ -7,7 +7,7 @@ use crate::dictionary::DICTIONARY;
 use crate::enums::ScreenTexPosFlag;
 use crate::global::GPS;
 use crate::markup::MARKUP;
-use crate::screen::{SCREEN, SCREEN_TOP};
+use crate::screen::{CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP};
 use crate::{raw, utils};
 
 use r#macro::hook;
@@ -84,10 +84,12 @@ fn translate(string: usize) -> String {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
+  // log::info!("??? 0x{gps:x}"); // XXX
+
   let (x, y) = gps_get_screen_coord(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(gps, x, y, content, 0);
+  let width = SCREEN.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, 0);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -99,7 +101,7 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
   let content = translate(string);
 
-  let width = SCREEN_TOP.write().add(gps, x, y, content, 0);
+  let width = SCREEN_TOP.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, 0);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -111,7 +113,7 @@ fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   let (x, y) = gps_get_screen_coord(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(gps, x, y, content, sflag);
+  let width = SCREEN.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, sflag);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space, sflag) };

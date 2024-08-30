@@ -9,8 +9,8 @@ use crate::{
   raw,
 };
 
-const CANVAS_FONT_WIDTH: i32 = 8 * 2;
-const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
+pub const CANVAS_FONT_WIDTH: i32 = 8 * 2;
+pub const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
 
 #[static_init::dynamic]
 pub static mut SCREEN: Screen = Screen::new();
@@ -28,7 +28,7 @@ struct ScreenInfo {
 
 #[derive(Debug)]
 #[repr(C)]
-struct ColorInfo {
+pub struct ColorInfo {
   pub screenf: u8,
   pub screenb: u8,
   pub screenbright: bool,
@@ -139,8 +139,9 @@ impl Screen {
     self.next.insert(key, (surface_ptr as usize, width));
 
     // calculate render offset
-    let x = CANVAS_FONT_WIDTH * x;
-    let mut y: i32 = CANVAS_FONT_HEIGHT as i32 * y;
+    // let x = CANVAS_FONT_WIDTH * x;
+    // let mut y: i32 = CANVAS_FONT_HEIGHT as i32 * y;
+    let mut y = y;
     if ScreenTexPosFlag::from_bits_retain(sflag).contains(ScreenTexPosFlag::BOTTOM_OF_TEXT) {
       // shift up by half font height for bottom half
       y -= CANVAS_FONT_HEIGHT / 2;
