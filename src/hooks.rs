@@ -1,6 +1,5 @@
 use anyhow::Result;
 use retour::static_detour;
-use unicode_width::UnicodeWidthStr;
 
 use crate::config::CONFIG;
 use crate::cxxstring::CxxString;
@@ -63,43 +62,43 @@ fn dummy_content(width: usize) -> CxxString {
   unsafe { CxxString::new(ptr, len - 1) }
 }
 
-fn translate(string: usize) -> (String, usize) {
+// FIXME: render the font, get real width, divided by 2, ceil it to curses font width
+fn translate(string: usize) -> String {
   let mut content = raw::deref_string(string);
   if let Some(translated) = DICTIONARY.get(&content) {
     content = translated.to_owned();
   }
-  let width = (content.width() as f32 * 6.0 / 8.0).ceil() as usize;
-  (content, width)
+  content
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
-  let (content, width) = translate(string);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+  let content = translate(string);
 
-  SCREEN.write().add(gps, x, y, content, width);
+  let width = SCREEN.write().add(gps, x, y, content, 0);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
-  let (content, width) = translate(string);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
+  let content = translate(string);
 
-  SCREEN_TOP.write().add(gps, x, y, content, width);
+  let width = SCREEN_TOP.write().add(gps, x, y, content, 0);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   let (x, y) = gps_get_screen_coord(gps);
-  let (content, width) = translate(string);
-  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space, sflag) };
+  let content = translate(string);
 
-  SCREEN.write().add(gps, x, y, content, width);
+  let width = SCREEN.write().add(gps, x, y, content, sflag);
+  unsafe { original!(gps, dummy_content(width).as_ptr() as usize, just, space, sflag) };
 }
 
 #[cfg_attr(target_os = "linux", hook(bypass))]
