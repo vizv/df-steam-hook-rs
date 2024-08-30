@@ -5,6 +5,7 @@ use std::io::Read;
 use std::{mem, ptr};
 
 use crate::config::CONFIG;
+use crate::cp437::UTF8_CHAR_TO_CP437;
 use crate::global::ENABLER;
 use crate::{raw, utils};
 
@@ -43,8 +44,8 @@ impl Font {
     let curses_surface_base =
       raw::deref::<usize>(enabler + CONFIG.offset.as_ref().unwrap().enabler_offset_curses_glyph_texture.unwrap());
 
-    if (ch as u32) < 256 {
-      return (raw::deref::<usize>(curses_surface_base + (ch as usize * 8)), true);
+    if let Some(&code) = UTF8_CHAR_TO_CP437.get(&ch) {
+      return (raw::deref::<usize>(curses_surface_base + (code as usize * 8)), true);
     };
 
     if !self.cache.contains_key(&ch) {
@@ -52,12 +53,13 @@ impl Font {
       if metrics.advance_width as u32 == CJK_FONT_SIZE && metrics.advance_height as u32 == CJK_FONT_SIZE {
         let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
         surface.with_lock_mut(|buffer| {
+          let dx = metrics.xmin;
           let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 3); // Note: only for the "NotoSansMonoCJKsc-Bold" font
-          let dy = if dy < 0 { 0 } else { dy as usize };
+          let dy = if dy < 0 { 0 } else { dy };
           for y in 0..metrics.height {
             for x in 0..metrics.width {
               let alpha = (bitmap[y * metrics.width + x] as u16 * 255 / 255) as u8;
-              let offset = (y + dy) * CJK_FONT_SIZE as usize + x;
+              let offset = ((y as i32 + dy) * CJK_FONT_SIZE as i32 + x as i32 + dx) as usize;
               buffer[offset * 4 + 0] = 255;
               buffer[offset * 4 + 1] = 255;
               buffer[offset * 4 + 2] = 255;
