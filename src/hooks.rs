@@ -17,7 +17,6 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst_top()?;
   attach_addst_flag()?;
   attach_addchar_flag()?;
-  attach_erasescreen()?;
   attach_gps_allocate()?;
   attach_resize()?;
   attach_update_all()?;
@@ -32,7 +31,6 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst_flag()?;
   enable_addchar_flag()?;
   enable_gps_allocate()?;
-  enable_erasescreen()?;
   enable_resize()?;
   enable_update_all()?;
   enable_update_tile()?;
@@ -46,7 +44,6 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst_flag()?;
   disable_addchar_flag()?;
   disable_gps_allocate()?;
-  disable_erasescreen()?;
   disable_resize()?;
   disable_update_all()?;
   disable_update_tile()?;
@@ -119,14 +116,6 @@ fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
-fn erasescreen(gps: usize) {
-  unsafe { original!(gps) };
-  SCREEN.write().clear();
-  SCREEN_TOP.write().clear();
-}
-
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn resize(renderer: usize, w: u32, h: u32) {
   unsafe { original!(renderer, w, h) };
@@ -148,6 +137,8 @@ fn gps_allocate(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, t
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
   SCREEN_TOP.write().render(renderer);
+  SCREEN.write().clear();
+  SCREEN_TOP.write().clear();
 }
 
 struct Dimension {
