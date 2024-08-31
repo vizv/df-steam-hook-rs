@@ -201,20 +201,16 @@ fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
 fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
   let content = translate(src);
-  log::warn!("0x{markup_text_box:x}: content = |{content}|");
 
   unsafe { original!(markup_text_box, src) };
 
-  // TODO: translate the whole text like help texts (0x21da0f0)
   // TODO: may need regexp for some scenarios like world generation status (0x22fa459)
   // TODO: log unknown markup_text_box (during world generation)
   // examples: (they are coming from "data/vanilla/vanilla_buildings/objects/building_custom.txt")
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
-  // log::info!("??? 0x{:x} {}", markup_text_box, content);
-  // log::warn!("??? before mtb_process_string_to_lines");
+
   MARKUP.write().add(markup_text_box, &content);
-  // log::warn!("??? after mtb_process_string_to_lines");
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]

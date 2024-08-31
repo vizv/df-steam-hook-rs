@@ -93,7 +93,6 @@ struct MarkupTextBox {
 impl MarkupTextBox {
   // See DFHack: library/modules/Gui.cpp - void Gui::MTB_parse(df::markup_text_boxst *mtb, string parse_text)
   pub fn parse(content: &String) -> Self {
-    // log::warn!("??? MarkupText::parse({})", content);
     let mut text: MarkupTextBox = Default::default();
 
     let chars = content.chars().collect::<Vec<char>>();
@@ -411,7 +410,6 @@ impl MarkupTextBox {
     if self.current_width == width {
       return;
     }
-    log::info!("??? set_width to {:?}", width);
 
     self.max_y = 0;
     self.current_width = width;
