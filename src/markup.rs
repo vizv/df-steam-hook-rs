@@ -568,7 +568,7 @@ impl Markup {
     if let Some(text) = self.items.get(&address) {
       let gps = GPS.to_owned();
       let color_base = gps + 0x8c; // TODO: check Windows offset
-      let color = raw::deref_mut::<screen::ColorInfo>(color_base);
+      let color = color_base as *mut screen::ColorInfo;
 
       for word in &text.word {
         let wx = word.x;
