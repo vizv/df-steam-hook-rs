@@ -536,6 +536,8 @@ impl MarkupTextBox {
 #[derive(Default)]
 pub struct Markup {
   items: HashMap<usize, MarkupTextBox>,
+  pub x: i32,
+  pub y: i32,
 }
 
 impl Markup {
@@ -545,9 +547,12 @@ impl Markup {
     self.items.insert(address, text);
   }
 
-  pub fn layout(&mut self, address: usize, current_width: i32) {
+  pub fn layout(&mut self, address: usize, current_width: i32) -> bool {
     if let Some(text) = self.items.get_mut(&address) {
       text.set_width(current_width);
+      // let word = raw::deref_vector::<usize>(address);
+      // word.len();
+      // let word = unsafe { std::mem::transmute::<usize, >(src) };
 
       // log::info!("??? {:?}", text);
 
@@ -574,12 +579,12 @@ impl Markup {
           }
           SCREEN_TOP.write().add(
             gps,
-            x + CANVAS_FONT_WIDTH * 130,
-            y + CANVAS_FONT_HEIGHT * 11,
+            x + CANVAS_FONT_WIDTH * (self.x + 2),
+            y + CANVAS_FONT_HEIGHT * (self.y + 7),
             word.str.clone(),
             0,
           );
-          log::info!("??? 0x{gps:x} {:?}", word);
+          // log::info!("??? 0x{gps:x} {:?}", word);
         }
 
         unsafe {
@@ -587,6 +592,15 @@ impl Markup {
           (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
         }
       }
+
+      unsafe {
+        *((address + 0x30) as *mut i32) = text.current_width;
+        *((address + 0x34) as *mut i32) = text.max_y;
+      }
+
+      return true;
     }
+
+    false
   }
 }

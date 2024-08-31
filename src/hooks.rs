@@ -27,7 +27,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_render_help_dialog()?;
 
   // attach_debug_get_main_interface_dims()?;
-  // attach_debug_get_dialog_size()?;
+  attach_debug_get_dialog_size()?;
   Ok(())
 }
 
@@ -183,7 +183,7 @@ fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
 fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
   let content = translate(src);
-  log::warn!("0x{markup_text_box:x}: content = {content}");
+  log::warn!("0x{markup_text_box:x}: content = |{content}|");
 
   unsafe { original!(markup_text_box, src) };
 
@@ -194,33 +194,73 @@ fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
   // log::info!("??? 0x{:x} {}", markup_text_box, content);
+  // log::warn!("??? before mtb_process_string_to_lines");
   MARKUP.write().add(markup_text_box, &content);
+  // log::warn!("??? after mtb_process_string_to_lines");
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
 fn mtb_set_width(markup_text_box: usize, current_width: i32) {
-  // log::info!("??? mtb_set_width 0x{markup_text_box:x} {current_width}");
-  unsafe { original!(markup_text_box, current_width) };
+  log::info!("??? mtb_set_width 0x{markup_text_box:x} {current_width}");
+
+  // log::warn!("??? before mtb_set_width");
+  // unsafe { original!(markup_text_box, current_width) };
+  // log::warn!("??? after mtb_set_width");
   MARKUP.write().layout(markup_text_box, current_width);
-  unsafe { *((markup_text_box + 0x30) as *mut i32) = 0 };
+  // unsafe { *((markup_text_box + 0x30) as *mut i32) = 0 };
 }
 
 static mut SAVED_CONTEXT: u32 = u32::MAX;
 
-// fn x() {
-//   let mut vec = CxxVector::<usize>::new();
-//   // let vec_ptr: usize = unsafe { core::mem::transmute(vec) };
-//   let mut vecz = CxxVector::<usize>::new();
-//   core::mem::swap(&mut vec, &mut vecz);
-// }
+fn x() {
+  // //   let mut vec = CxxVector::<usize>::new();
+  // //   // let vec_ptr: usize = unsafe { core::mem::transmute(vec) };
+  // //   let mut vecz = CxxVector::<usize>::new();
+  // //   core::mem::swap(&mut vec, &mut vecz);
+  //   let target: usize = 0x30;
+  //   let mut stored_end = [0; 20];
+  //   for i in 0..20 {
+  //     stored_end[i] = raw::deref::<usize>(target + i * 64 + 8);
+  //   }
+  let bl: i32 = 0;
+  let x = &bl as *const i32 as usize;
+}
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
 fn render_help_dialog(help: usize) {
-  // let save = CxxVector::<usize>::new();
-  // let save_ptr: usize = unsafe { core::mem::transmute(save) };
-  // let stub = CxxVector::<usize>::new();
-  // let stub_ptr: usize = unsafe { core::mem::transmute(stub) };
+  // let bl: i32 = 0;
+  // let br: i32 = 0;
+  // let bt: i32 = 0;
+  // let bb: i32 = 0;
+  // let get_dialog_size_ptr = unsafe { *(0x0118fd00 as *const fn(usize, usize, usize, usize, usize)) };
+  // // get_dialog_size_ptr(
+  // //   help,
+  // //   &bl as *const i32 as *mut i32 as usize,
+  // //   &br as *const i32 as *mut i32 as usize,
+  // //   &bt as *const i32 as *mut i32 as usize,
+  // //   &bb as *const i32 as *mut i32 as usize,
+  // // );
+  // log::warn!("??? render_help_dialog: 0x{help:x} - {bl},{br},{bt},{bb}");
+
+
+  let save = CxxVector::<usize>::new();
+  let save_ptr: usize = unsafe { core::mem::transmute(save) };
+  let stub = CxxVector::<usize>::new();
+  let stub_ptr: usize = unsafe { core::mem::transmute(stub) };
   let target = help + 0x30;
+  let mut stored_end = [0; 20];
+  for i in 0..20 {
+    let begin_ptr = (target + i * 64) as *const usize;
+    let end_ptr = (target + i * 64 + 8) as *mut usize;
+    unsafe {
+      stored_end[i] = *end_ptr;
+      *end_ptr = *begin_ptr;
+    };
+    // log::warn!("??? render_help_dialog {i}: 0x{:x}", target + i * 64);
+  }
+  // let context = raw::deref::<i32>(help + 0x0c);
+  // if context >= 0 {
+  // }
 
   // unsafe {
   //   core::ptr::copy_nonoverlapping(target as *mut u8, save_ptr as *mut u8, 24);
@@ -236,14 +276,18 @@ fn render_help_dialog(help: usize) {
       // log::warn!("context = {}", context);
     }
   };
-  unsafe {
-    original!(help);
-  }
+  // log::warn!("??? before render_help_dialog");
+  unsafe { original!(help) };
+  // log::warn!("??? after render_help_dialog");
 
   // unsafe {
   //   core::ptr::copy_nonoverlapping(save_ptr as *mut u8, target as *mut u8, 24);
   //   // *((target + 0x30) as *mut i32) = *((target + 0x30) as *const i32) + 2;
   // }
+  for i in 0..20 {
+    let end_ptr = (target + i * 64 + 8) as *mut usize;
+    unsafe { *end_ptr = stored_end[i] };
+  }
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "0136e770"))]
@@ -255,11 +299,14 @@ fn debug_get_main_interface_dims(game: usize, p1: usize, p2: usize) {
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "0118fd00"))]
-fn debug_get_dialog_size(help: usize, p1: usize, p2: usize, p3: usize, p4: usize) {
-  unsafe { original!(help, p1, p2, p3, p4) };
-  let p1 = raw::deref::<i32>(p1);
-  let p2 = raw::deref::<i32>(p2);
-  let p3 = raw::deref::<i32>(p3);
-  let p4 = raw::deref::<i32>(p4);
-  log::info!("debug_get_dialog_size({p1},{p2},{p3},{p4})");
+fn debug_get_dialog_size(help: usize, pl: usize, pr: usize, pt: usize, pb: usize) {
+  unsafe { original!(help, pl, pr, pt, pb) };
+  let pl = raw::deref::<i32>(pl);
+  let pr = raw::deref::<i32>(pr);
+  let pt = raw::deref::<i32>(pt);
+  let pb = raw::deref::<i32>(pb);
+  // log::info!("debug_get_dialog_size({pl},{pr},{pt},{pb})");
+  let mut markup = MARKUP.write();
+  markup.x = pl;
+  markup.y = pt;
 }
