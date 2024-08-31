@@ -8,7 +8,7 @@ use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{
   config::CONFIG,
-  df::{self, common::Coordinate},
+  df::{self, common::Coord},
   enums::ScreenTexPosFlag,
   font::{CJK_FONT_SIZE, FONT},
   raw,
@@ -52,40 +52,22 @@ pub struct ColorTuple {
   pub r: u8,
   pub g: u8,
   pub b: u8,
-  // TODO: remove these fields if not needed
-  pub br: u8,
-  pub bg: u8,
-  pub bb: u8,
 }
 
 impl Default for ColorTuple {
   fn default() -> Self {
-    Self {
-      r: 255,
-      g: 255,
-      b: 255,
-      br: 0,
-      bg: 0,
-      bb: 0,
-    }
+    Self { r: 255, g: 255, b: 255 }
   }
 }
 
 impl ColorTuple {
   pub fn rgb(r: u8, g: u8, b: u8) -> Self {
-    Self {
-      r,
-      g,
-      b,
-      br: 0,
-      bg: 0,
-      bb: 0,
-    }
+    Self { r, g, b }
   }
 }
 
 pub struct ScreenText {
-  coord: df::common::Coordinate<i32>,
+  coord: df::common::Coord<i32>,
   data: ColoredText,
   render: bool,
 }
@@ -99,7 +81,7 @@ impl ScreenText {
     }
   }
 
-  pub fn by_coord(mut self, coord: df::common::Coordinate<i32>) -> Self {
+  pub fn by_coord(mut self, coord: df::common::Coord<i32>) -> Self {
     self.coord = coord;
     self
   }
@@ -119,18 +101,12 @@ impl ScreenText {
         r: raw::deref::<u8>(uccolor_base + fg * 3 + 0),
         g: raw::deref::<u8>(uccolor_base + fg * 3 + 1),
         b: raw::deref::<u8>(uccolor_base + fg * 3 + 2),
-        br: raw::deref::<u8>(uccolor_base + bg * 3 + 0),
-        bg: raw::deref::<u8>(uccolor_base + bg * 3 + 1),
-        bb: raw::deref::<u8>(uccolor_base + bg * 3 + 2),
       }
     } else {
       ColorTuple {
         r: color.screen_color_r,
         g: color.screen_color_g,
         b: color.screen_color_b,
-        br: color.screen_color_br,
-        bg: color.screen_color_bg,
-        bb: color.screen_color_bb,
       }
     };
 
@@ -236,7 +212,7 @@ impl Screen {
   pub fn add_text(&mut self, text: ScreenText) -> usize {
     let ScreenText {
       data: text,
-      coord: Coordinate { x, y },
+      coord: Coord { x, y },
       render,
     } = text;
 

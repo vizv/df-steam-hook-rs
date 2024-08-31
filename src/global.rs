@@ -49,6 +49,5 @@ pub static GAME: usize = 0x21d4380;
 #[allow(non_upper_case_globals)]
 #[cfg(target_os = "linux")]
 #[static_init::dynamic]
-pub static get_key_display: fn(usize, usize, i32) = unsafe {
-  utils::symbol_handle("libg_src_lib.so", "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei")
-};
+pub static get_key_display: fn(usize, usize, i32) =
+  unsafe { utils::symbol_handle("libg_src_lib.so", "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei") };

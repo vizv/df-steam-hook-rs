@@ -8,6 +8,7 @@ mod cjk;
 mod config;
 mod constants;
 mod cp437;
+mod df;
 mod dictionary;
 mod enums;
 mod font;
@@ -18,7 +19,6 @@ mod raw;
 mod screen;
 mod utils;
 mod watchdog;
-mod df;
 
 use log::{debug, error, info};
 

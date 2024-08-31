@@ -1,3 +1,3 @@
 pub mod common;
-pub mod utils;
 pub mod graphic;
+pub mod utils;
