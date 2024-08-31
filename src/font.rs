@@ -72,7 +72,6 @@ impl Font {
           let dx = metrics.xmin;
           let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 4); // Note: only for the "NotoSansMonoCJKsc-Bold" font
           let dy = if dy < 0 { 0 } else { dy };
-          // log::info!("??? {ch} {}: {metrics:?} / {dx},{dy}", ch as usize);
           for y in 0..metrics.height {
             for x in 0..metrics.width {
               let alpha = (bitmap[y * metrics.width + x] as u16 * 255 / 255) as u8;

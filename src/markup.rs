@@ -7,16 +7,15 @@ use crate::{
   font::{self, FONT},
   global::{get_key_display, ENABLER, GPS},
   raw,
-  screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP},
-  utils,
+  screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
 
 const CURSES_FONT_WIDTH: i32 = font::CURSES_FONT_WIDTH as i32;
-const CJK_FONT_SIZE: i32 = font::CJK_FONT_SIZE as i32;
 
 #[static_init::dynamic]
 pub static mut MARKUP: Markup = Default::default();
 
+#[allow(dead_code)]
 enum CursesColor {
   Black = 0,
   Blue = 1,
@@ -28,6 +27,7 @@ enum CursesColor {
   White = 7,
 }
 
+#[allow(dead_code, non_camel_case_types)]
 #[derive(Debug)]
 enum LinkType {
   NONE = -1,
@@ -45,6 +45,8 @@ enum LinkType {
   HEC = 11,
 }
 
+// TODO: remove this? as it's parsed by original code already
+#[allow(dead_code)]
 #[derive(Debug)]
 struct MarkupLink {
   typ: LinkType,
@@ -264,10 +266,7 @@ impl MarkupTextBox {
                 log::debug!("MTB_parse received:\n[C:VAR:{}:{}]\nwhich is for dipscripts and is unimplemented.\nThe dipscript environment itself is: {}", buff2, buff3, environment);
                 //MTB_set_color_on_var(mtb, buff2, buff3);
               } else {
-                // skip: gps->screenf = (df::curses_color)atoi(buff1.c_str());
-                // skip: gps->screenb = (df::curses_color)atoi(buff2.c_str());
-                // skip: gps->screenbright = (bool)atoi(buff3.c_str());
-                // skip: gps->use_old_16_colors = true;
+                // skip setting colors in GPS, use local variables for colors
                 local_screenf = buff1.parse::<i32>().unwrap_or(0);
                 local_screenbright = buff3.parse::<i32>().unwrap_or(0) != 0;
               }
@@ -288,8 +287,7 @@ impl MarkupTextBox {
 
               let mut ptr: MarkupWord = Default::default();
               let binding = buff.parse::<i32>().unwrap_or(0);
-              // let get_key_display_ptr = unsafe()
-              // TODO: ptr->str = df::global::enabler->GetKeyDisplay((df::interface_key)atoi(buff.c_str()));
+
               unsafe {
                 let_cxx_string!(key = "");
                 let key_ptr: usize = core::mem::transmute(key);
@@ -561,48 +559,6 @@ impl Markup {
   pub fn layout(&mut self, address: usize, current_width: i32) -> i32 {
     if let Some(text) = self.items.get_mut(&address) {
       text.set_width(current_width);
-      // let word = raw::deref_vector::<usize>(address);
-      // word.len();
-      // let word = unsafe { std::mem::transmute::<usize, >(src) };
-
-      // log::info!("??? {:?}", text);
-
-      // XXX debug
-      // {
-      //   let gps = GPS.to_owned();
-      //   let color_base = gps + 0x8c; // TODO: check Windows offset
-      //   let color = raw::deref_mut::<screen::ColorInfo>(color_base);
-
-      //   // 0x1f80340
-      //   let saved_screenx = raw::deref::<i32>(gps + 0x84);
-      //   let saved_screeny = raw::deref::<i32>(gps + 0x88);
-
-      //   for word in &text.word {
-      //     let x = word.x;
-      //     let y = word.py * CANVAS_FONT_HEIGHT;
-      //     unsafe {
-      //       (*raw::deref_mut::<i32>(gps + 0x84)) = x;
-      //       (*raw::deref_mut::<i32>(gps + 0x88)) = y;
-      //       (*color).use_old_16_colors = false;
-      //       (*color).screen_color_r = word.red;
-      //       (*color).screen_color_g = word.green;
-      //       (*color).screen_color_b = word.blue;
-      //     }
-      //     SCREEN_TOP.write().add(
-      //       gps,
-      //       x + CANVAS_FONT_WIDTH * (self.x + 2),
-      //       y + CANVAS_FONT_HEIGHT * (self.y + 7),
-      //       word.str.clone(),
-      //       0,
-      //     );
-      //     // log::info!("??? 0x{gps:x} {:?}", word);
-      //   }
-
-      //   unsafe {
-      //     (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
-      //     (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
-      //   }
-      // }
 
       return text.max_y;
     }
@@ -616,16 +572,10 @@ impl Markup {
       let color_base = gps + 0x8c; // TODO: check Windows offset
       let color = raw::deref_mut::<screen::ColorInfo>(color_base);
 
-      // 0x1f80340
-      // let saved_screenx = raw::deref::<i32>(gps + 0x84);
-      // let saved_screeny = raw::deref::<i32>(gps + 0x88);
-
       for word in &text.word {
         let wx = word.x;
         let wy = word.py * CANVAS_FONT_HEIGHT;
         unsafe {
-          // (*raw::deref_mut::<i32>(gps + 0x84)) = x;
-          // (*raw::deref_mut::<i32>(gps + 0x88)) = y;
           (*color).use_old_16_colors = false;
           (*color).screen_color_r = word.red;
           (*color).screen_color_g = word.green;
@@ -638,13 +588,7 @@ impl Markup {
           word.str.clone(),
           0,
         );
-        // log::info!("??? 0x{gps:x} {:?}", word);
       }
-
-      // unsafe {
-      //   (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
-      //   (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
-      // }
     }
   }
 }

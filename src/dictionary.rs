@@ -2,7 +2,6 @@ use anyhow::Result;
 use std::collections::HashMap;
 use std::io::prelude::*;
 
-use crate::config::CONFIG;
 use crate::constants::PATH_DICTIONARY;
 use crate::utils;
 
@@ -52,7 +51,6 @@ impl Dictionary {
 
   #[allow(unused_must_use)]
   fn load(path: &str) -> Result<HashMap<String, String>> {
-    simple_logging::log_to_file(&CONFIG.settings.log_file, utils::log_level(CONFIG.settings.log_level)).unwrap();
     let mut file = std::fs::File::open(path)?;
     let mut contents: Vec<u8> = Vec::new();
     file.read_to_end(&mut contents);
