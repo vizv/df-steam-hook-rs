@@ -57,7 +57,6 @@ pub struct OffsetsMetadata {
 #[derive(Deserialize)]
 pub struct OffsetsValues {
   pub enabler: Option<usize>,
-  pub enabler_offset_curses_glyph_texture: Option<usize>,
   pub gps: Option<usize>,
   pub gps_offset_dimension: Option<usize>,
   pub addst: Option<usize>,
