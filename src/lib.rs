@@ -10,7 +10,6 @@ mod constants;
 mod cp437;
 mod df;
 mod dictionary;
-mod enums;
 mod font;
 mod global;
 mod hooks;

@@ -4,11 +4,10 @@ use retour::static_detour;
 
 use crate::config::CONFIG;
 use crate::dictionary::DICTIONARY;
-use crate::enums::ScreenTexPosFlag;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{ScreenText, SCREEN, SCREEN_TOP};
-use crate::{raw, utils};
+use crate::{df, raw, utils};
 
 use r#macro::hook;
 
@@ -122,7 +121,8 @@ fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
 #[cfg_attr(target_os = "linux", hook(bypass))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
-  if ScreenTexPosFlag::from_bits_retain(sflag).contains(ScreenTexPosFlag::TOP_OF_TEXT) {
+  let flag = df::flags::ScreenTexPosFlag::from_bits_retain(sflag);
+  if flag.contains(df::flags::ScreenTexPosFlag::TOP_OF_TEXT) {
     return;
   }
 

@@ -8,7 +8,6 @@ use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{
   df,
-  enums::ScreenTexPosFlag,
   font::{CJK_FONT_SIZE, FONT},
 };
 
@@ -65,11 +64,13 @@ impl ScreenText {
   }
 
   pub fn with_sflag(mut self, sflag: u32) -> Self {
-    if ScreenTexPosFlag::from_bits_retain(sflag).contains(ScreenTexPosFlag::TOP_OF_TEXT) {
+    let flag = df::flags::ScreenTexPosFlag::from_bits_retain(sflag);
+
+    if flag.contains(df::flags::ScreenTexPosFlag::TOP_OF_TEXT) {
       self.render = false;
     }
 
-    if ScreenTexPosFlag::from_bits_retain(sflag).contains(ScreenTexPosFlag::BOTTOM_OF_TEXT) {
+    if flag.contains(df::flags::ScreenTexPosFlag::BOTTOM_OF_TEXT) {
       self.coord.y -= CANVAS_FONT_HEIGHT / 2
     }
 
