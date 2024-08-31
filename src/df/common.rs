@@ -14,7 +14,7 @@ impl<T> Coord<T> {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Color {
   pub r: u8,
   pub g: u8,

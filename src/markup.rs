@@ -6,7 +6,6 @@ use crate::{
   cjk, df,
   font::FONT,
   global::{get_key_display, ENABLER, GPS},
-  raw,
   screen::{ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
 
@@ -40,9 +39,7 @@ bitflags! {
 #[derive(Debug, Default)]
 struct MarkupWord {
   str: String,
-  red: u8,
-  green: u8,
-  blue: u8,
+  color: df::common::Color,
   link_index: i32,
   x: i32,
   py: i32, // TODO: change this to pixels
@@ -67,7 +64,7 @@ impl MarkupTextBox {
 
     let mut str = String::new();
     let mut link_index: i32 = -1;
-    let mut color = df::enums::CursesColor::White as usize;
+    let mut color = df::enums::CursesColor::White;
     let mut use_char;
     let mut no_split_space;
 
@@ -234,11 +231,12 @@ impl MarkupTextBox {
                 //MTB_set_color_on_var(mtb, buff2, buff3);
               } else {
                 // skip setting colors in GPS, use local variables for colors
-                local_screenf = buff1.parse::<i32>().unwrap_or(0);
-                local_screenbright = buff3.parse::<i32>().unwrap_or(0) != 0;
+                local_screenf = buff1.parse::<i32>().unwrap_or(7);
+                local_screenbright = buff3.parse::<i32>().unwrap_or(1) != 0;
               }
 
-              color = (local_screenf + if local_screenbright { 8 } else { 0 }) as usize;
+              color = local_screenf.into();
+              color = color.with_bright(local_screenbright);
             }
             "KEY" => {
               text.insert(&mut str, link_index, color);
@@ -261,11 +259,7 @@ impl MarkupTextBox {
                 get_key_display(key_ptr, ENABLER.to_owned(), binding);
                 ptr.str = df::utils::deref_string(key_ptr);
               };
-
-              let base = (GPS.to_owned() + 0x158) + 3 * (df::enums::CursesColor::Green as usize + 8);
-              ptr.red = raw::deref::<u8>(base + 0);
-              ptr.green = raw::deref::<u8>(base + 1);
-              ptr.blue = raw::deref::<u8>(base + 2);
+              ptr.color = df::graphic::get_uccolor(GPS.to_owned(), df::enums::CursesColor::LightGreen);
 
               text.word.push(ptr);
             }
@@ -486,7 +480,7 @@ impl MarkupTextBox {
     out
   }
 
-  fn insert(&mut self, str: &mut String, link_index: i32, color: usize) -> bool {
+  fn insert(&mut self, str: &mut String, link_index: i32, color: df::enums::CursesColor) -> bool {
     if str.is_empty() {
       return false;
     }
@@ -495,10 +489,7 @@ impl MarkupTextBox {
     ptr.str = str.clone();
     ptr.link_index = link_index;
 
-    let base = (GPS.to_owned() + 0x158) + 3 * color;
-    ptr.red = raw::deref::<u8>(base + 0);
-    ptr.green = raw::deref::<u8>(base + 1);
-    ptr.blue = raw::deref::<u8>(base + 2);
+    ptr.color = df::graphic::get_uccolor(GPS.to_owned(), color);
 
     self.word.push(ptr);
     str.clear();
@@ -534,7 +525,7 @@ impl Markup {
       for word in &text.word {
         let wx = word.x;
         let wy = word.py * CANVAS_FONT_HEIGHT;
-        let color = df::common::Color::rgb(word.red, word.green, word.blue);
+        let color = word.color.clone();
         let text = ScreenText::new(word.str.clone()).by_graphic(gps).with_offset(wx, wy).with_color(color);
         SCREEN_TOP.write().add_text(text);
       }

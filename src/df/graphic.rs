@@ -1,4 +1,4 @@
-use super::{common, offsets, utils};
+use super::{common, enums, offsets, utils};
 
 pub fn deref_coord(addr: usize) -> common::Coord<i32> {
   common::Coord::at(addr + offsets::GRAPHIC_SCREENX)
@@ -34,4 +34,8 @@ pub fn deref_color(addr: usize) -> common::Color {
   } else {
     common::Color::rgb(r, g, b)
   }
+}
+
+pub fn get_uccolor(addr: usize, color: enums::CursesColor) -> common::Color {
+  common::Color::at(addr + offsets::GRAPHIC_UCCOLOR + 3 * color as usize)
 }
