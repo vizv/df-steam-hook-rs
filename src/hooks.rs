@@ -8,7 +8,7 @@ use crate::enums::ScreenTexPosFlag;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP};
-use crate::{raw, utils};
+use crate::{df, raw, utils};
 
 use r#macro::hook;
 
@@ -20,10 +20,10 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_gps_allocate()?;
   attach_update_all()?;
   attach_update_tile()?;
-
   attach_mtb_process_string_to_lines()?;
   attach_mtb_set_width()?;
   attach_render_help_dialog()?;
+
   Ok(())
 }
 
@@ -35,11 +35,10 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_gps_allocate()?;
   enable_update_all()?;
   enable_update_tile()?;
-
   // always enable mtb_process_string_to_lines:
-  // enable_mtb_process_string_to_lines()?;
   enable_mtb_set_width()?;
   enable_render_help_dialog()?;
+
   Ok(())
 }
 
@@ -51,19 +50,11 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_gps_allocate()?;
   disable_update_all()?;
   disable_update_tile()?;
-
   // always enable mtb_process_string_to_lines:
-  // disable_mtb_process_string_to_lines()?;
   disable_mtb_set_width()?;
   disable_render_help_dialog()?;
-  Ok(())
-}
 
-fn gps_get_screen_coord(addr: usize) -> (i32, i32) {
-  (
-    raw::deref::<i32>(addr + 0x84), // gps.screenx
-    raw::deref::<i32>(addr + 0x88), // gps.screeny
-  )
+  Ok(())
 }
 
 // FIXME: render the font, get real width, divided by 2, ceil it to curses font width
@@ -78,10 +69,16 @@ fn translate(string: usize) -> String {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
-  let (x, y) = gps_get_screen_coord(gps);
+  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, 0);
+  let width = SCREEN.write().add(
+    gps,
+    coords.x * CANVAS_FONT_WIDTH,
+    coords.y * CANVAS_FONT_HEIGHT,
+    content,
+    0,
+  );
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -90,7 +87,7 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
-  let (x, y) = gps_get_screen_coord(gps);
+  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
   {
@@ -106,8 +103,8 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
           unsafe {
             let ox = *((word + 0x28) as *const i32);
             let oy = *((word + 0x2c) as *const i32);
-            let x = x - ox;
-            let y = y - oy;
+            let x = coords.x - ox;
+            let y = coords.y - oy;
             MARKUP.write().render(text, x, y);
           }
           return;
@@ -116,7 +113,13 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
     }
   }
 
-  let width = SCREEN_TOP.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, 0);
+  let width = SCREEN_TOP.write().add(
+    gps,
+    coords.x * CANVAS_FONT_WIDTH,
+    coords.y * CANVAS_FONT_HEIGHT,
+    content,
+    0,
+  );
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -125,10 +128,16 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
-  let (x, y) = gps_get_screen_coord(gps);
+  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, sflag);
+  let width = SCREEN.write().add(
+    gps,
+    coords.x * CANVAS_FONT_WIDTH,
+    coords.y * CANVAS_FONT_HEIGHT,
+    content,
+    sflag,
+  );
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space, sflag) };

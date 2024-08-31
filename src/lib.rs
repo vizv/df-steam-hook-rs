@@ -18,6 +18,7 @@ mod raw;
 mod screen;
 mod utils;
 mod watchdog;
+mod df;
 
 use log::{debug, error, info};
 
