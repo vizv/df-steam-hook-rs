@@ -540,9 +540,6 @@ impl MarkupTextBox {
 #[derive(Default)]
 pub struct Markup {
   items: HashMap<usize, MarkupTextBox>,
-  // pub x: i32,
-  // pub y: i32,
-  // pub rendering: bool,
 }
 
 impl Markup {
