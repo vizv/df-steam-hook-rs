@@ -22,6 +22,10 @@ pub struct Color {
 }
 
 impl Color {
+  pub fn at(addr: usize) -> Self {
+    utils::deref(addr)
+  }
+
   pub fn rgb(r: u8, g: u8, b: u8) -> Self {
     Self { r, g, b }
   }

@@ -31,18 +31,6 @@ struct ScreenInfo {
   pub origin_y: i32,
 }
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct ColorInfo {
-  pub screenf: u8,
-  pub screenb: u8,
-  pub screenbright: bool,
-  pub use_old_16_colors: bool,
-  pub screen_color_r: u8,
-  pub screen_color_g: u8,
-  pub screen_color_b: u8,
-}
-
 pub struct ScreenText {
   coord: df::common::Coord<i32>,
   data: ColoredText,
@@ -68,25 +56,7 @@ impl ScreenText {
   }
 
   pub fn color_by_graphic(mut self, gps: usize) -> Self {
-    let color_base = gps + 0x8c; // TODO: check Windows offset
-    let color = raw::deref::<ColorInfo>(color_base);
-    let color = if color.use_old_16_colors {
-      let fg = (color.screenf + if color.screenbright { 8 } else { 0 }) as usize;
-      let uccolor_base = color_base + 0xcc;
-      let r = raw::deref::<u8>(uccolor_base + fg * 3 + 0);
-      let g = raw::deref::<u8>(uccolor_base + fg * 3 + 1);
-      let b = raw::deref::<u8>(uccolor_base + fg * 3 + 2);
-      df::common::Color::rgb(r, g, b)
-    } else {
-      let ColorInfo {
-        screen_color_r: r,
-        screen_color_g: g,
-        screen_color_b: b,
-        ..
-      } = color;
-      df::common::Color::rgb(r, g, b)
-    };
-
+    let color = df::graphic::deref_color(gps);
     self.data = self.data.with_color(color);
     self
   }
