@@ -1,5 +1,6 @@
 use super::utils;
 
+#[repr(C)]
 #[derive(Debug, Default)]
 pub struct Coord<T> {
   pub x: T,
@@ -12,6 +13,7 @@ impl<T> Coord<T> {
   }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Color {
   pub r: u8,

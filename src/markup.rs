@@ -3,11 +3,11 @@ use cxx::let_cxx_string;
 use std::collections::HashMap;
 
 use crate::{
-  cjk,
+  cjk, df,
   font::FONT,
   global::{get_key_display, ENABLER, GPS},
   raw,
-  screen::{ColorTuple, ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
+  screen::{ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
 
 #[static_init::dynamic]
@@ -567,7 +567,7 @@ impl Markup {
       for word in &text.word {
         let wx = word.x;
         let wy = word.py * CANVAS_FONT_HEIGHT;
-        let color = ColorTuple::rgb(word.red, word.green, word.blue);
+        let color = df::common::Color::rgb(word.red, word.green, word.blue);
         let text = ScreenText::new(word.str.clone()).by_graphic(gps).with_offset(wx, wy).with_color(color);
         SCREEN_TOP.write().add_text(text);
       }

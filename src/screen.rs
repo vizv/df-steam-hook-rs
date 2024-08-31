@@ -8,7 +8,7 @@ use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{
   config::CONFIG,
-  df::{self, common::Coord},
+  df,
   enums::ScreenTexPosFlag,
   font::{CJK_FONT_SIZE, FONT},
   raw,
@@ -43,20 +43,6 @@ pub struct ColorInfo {
   pub screen_color_b: u8,
 }
 
-// TODO: move to df::common
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ColorTuple {
-  pub r: u8,
-  pub g: u8,
-  pub b: u8,
-}
-
-impl ColorTuple {
-  pub fn rgb(r: u8, g: u8, b: u8) -> Self {
-    Self { r, g, b }
-  }
-}
-
 pub struct ScreenText {
   coord: df::common::Coord<i32>,
   data: ColoredText,
@@ -87,17 +73,18 @@ impl ScreenText {
     let color = if color.use_old_16_colors {
       let fg = (color.screenf + if color.screenbright { 8 } else { 0 }) as usize;
       let uccolor_base = color_base + 0xcc;
-      ColorTuple {
-        r: raw::deref::<u8>(uccolor_base + fg * 3 + 0),
-        g: raw::deref::<u8>(uccolor_base + fg * 3 + 1),
-        b: raw::deref::<u8>(uccolor_base + fg * 3 + 2),
-      }
+      let r = raw::deref::<u8>(uccolor_base + fg * 3 + 0);
+      let g = raw::deref::<u8>(uccolor_base + fg * 3 + 1);
+      let b = raw::deref::<u8>(uccolor_base + fg * 3 + 2);
+      df::common::Color::rgb(r, g, b)
     } else {
-      ColorTuple {
-        r: color.screen_color_r,
-        g: color.screen_color_g,
-        b: color.screen_color_b,
-      }
+      let ColorInfo {
+        screen_color_r: r,
+        screen_color_g: g,
+        screen_color_b: b,
+        ..
+      } = color;
+      df::common::Color::rgb(r, g, b)
     };
 
     self.data = self.data.with_color(color);
@@ -129,7 +116,7 @@ impl ScreenText {
     self
   }
 
-  pub fn with_color(mut self, color: ColorTuple) -> Self {
+  pub fn with_color(mut self, color: df::common::Color) -> Self {
     self.data = self.data.with_color(color);
     self
   }
@@ -138,18 +125,18 @@ impl ScreenText {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ColoredText {
   pub content: String,
-  pub color: ColorTuple,
+  pub color: df::common::Color,
 }
 
 impl ColoredText {
   pub fn new(content: String) -> Self {
     Self {
       content,
-      color: ColorTuple::rgb(255, 255, 255),
+      color: df::common::Color::rgb(255, 255, 255),
     }
   }
 
-  pub fn with_color(mut self, color: ColorTuple) -> Self {
+  pub fn with_color(mut self, color: df::common::Color) -> Self {
     self.color = color;
     self
   }
@@ -202,7 +189,7 @@ impl Screen {
   pub fn add_text(&mut self, text: ScreenText) -> usize {
     let ScreenText {
       data: text,
-      coord: Coord { x, y },
+      coord: df::common::Coord { x, y },
       render,
     } = text;
 
