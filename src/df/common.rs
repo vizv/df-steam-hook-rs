@@ -1,6 +1,5 @@
 use super::utils;
 
-// TODO: change to Coord
 #[derive(Debug, Default)]
 pub struct Coord<T> {
   pub x: T,

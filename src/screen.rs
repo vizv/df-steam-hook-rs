@@ -115,7 +115,7 @@ impl ScreenText {
   }
 
   pub fn coord_by_graphic(self, gps: usize) -> Self {
-    let mut coord = df::graphic::deref_coordinate(gps);
+    let mut coord = df::graphic::deref_coord(gps);
     coord.x *= CANVAS_FONT_WIDTH;
     coord.y *= CANVAS_FONT_HEIGHT;
     self.by_coord(coord)
