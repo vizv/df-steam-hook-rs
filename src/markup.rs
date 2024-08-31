@@ -4,13 +4,11 @@ use std::collections::HashMap;
 
 use crate::{
   cjk,
-  font::{self, FONT},
+  font::FONT,
   global::{get_key_display, ENABLER, GPS},
   raw,
   screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
-
-const CURSES_FONT_WIDTH: i32 = font::CURSES_FONT_WIDTH as i32;
 
 #[static_init::dynamic]
 pub static mut MARKUP: Markup = Default::default();
@@ -414,7 +412,7 @@ impl MarkupTextBox {
     self.max_y = 0;
     self.current_width = width;
 
-    let width_in_pixels = width * CURSES_FONT_WIDTH;
+    let width_in_pixels = width * CANVAS_FONT_WIDTH;
     let mut remain_width = width_in_pixels;
     let mut x_val = 0;
     let mut py_val = 0;
@@ -435,7 +433,7 @@ impl MarkupTextBox {
 
       if cur_word.flags.contains(MarkupWordFlag::INDENT) {
         remain_width = width_in_pixels;
-        x_val = 4 * CURSES_FONT_WIDTH;
+        x_val = 4 * CANVAS_FONT_WIDTH;
         py_val += 1;
         continue;
       }
@@ -450,7 +448,7 @@ impl MarkupTextBox {
       if let Some(next_word) = iter.peek() {
         if next_word.str.chars().count() == 1 {
           let next_char = next_word.str.chars().next().unwrap();
-          if x_val > 0 && remain_width <= (FONT.write().get_width(next_char) as i32 + CURSES_FONT_WIDTH) {
+          if x_val > 0 && remain_width <= (FONT.write().get_width(next_char) as i32 + CANVAS_FONT_WIDTH) {
             match next_char {
               '.' | ',' | '?' | '!' => {
                 remain_width = width_in_pixels;
@@ -467,15 +465,15 @@ impl MarkupTextBox {
         let cur_char = cur_word.str.chars().next().unwrap();
         match cur_char {
           '.' | ',' | '?' | '!' => {
-            cur_word.x = x_val - CURSES_FONT_WIDTH;
+            cur_word.x = x_val - CANVAS_FONT_WIDTH;
             cur_word.py = py_val;
 
             if self.max_y < py_val {
               self.max_y = py_val;
             }
 
-            remain_width -= CURSES_FONT_WIDTH;
-            x_val += CURSES_FONT_WIDTH;
+            remain_width -= CANVAS_FONT_WIDTH;
+            x_val += CANVAS_FONT_WIDTH;
             continue;
           }
           _ => {}
@@ -489,16 +487,16 @@ impl MarkupTextBox {
         self.max_y = py_val;
       }
 
-      remain_width -= word_width + CURSES_FONT_WIDTH;
-      x_val += word_width + CURSES_FONT_WIDTH;
+      remain_width -= word_width + CANVAS_FONT_WIDTH;
+      x_val += word_width + CANVAS_FONT_WIDTH;
 
       if let Some(next_word) = iter.peek() {
         if cur_word.str.chars().count() > 0 && next_word.str.chars().count() > 0 {
           let cur_last_char = cur_word.str.chars().last().unwrap();
           let next_first_char = next_word.str.chars().next().unwrap();
           if FONT.write().is_cjk(cur_last_char) && FONT.write().is_cjk(next_first_char) {
-            remain_width += CURSES_FONT_WIDTH;
-            x_val -= CURSES_FONT_WIDTH;
+            remain_width += CANVAS_FONT_WIDTH;
+            x_val -= CANVAS_FONT_WIDTH;
           }
         }
       }
