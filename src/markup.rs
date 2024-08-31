@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::{
   cjk,
   font::{self, FONT},
-  global::{ENABLER, GPS},
+  global::{get_key_display, ENABLER, GPS},
   raw,
   screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP},
   utils,
@@ -291,15 +291,9 @@ impl MarkupTextBox {
               // let get_key_display_ptr = unsafe()
               // TODO: ptr->str = df::global::enabler->GetKeyDisplay((df::interface_key)atoi(buff.c_str()));
               unsafe {
-                let enabler = ENABLER.to_owned();
-                let get_key_display = utils::symbol_handle::<fn(usize, usize, i32)>(
-                  "libg_src_lib.so",
-                  "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei",
-                );
-                // let get_key_display = *(fa as *const fn(usize, usize, i32));
                 let_cxx_string!(key = "");
                 let key_ptr: usize = core::mem::transmute(key);
-                get_key_display(key_ptr, enabler, binding);
+                get_key_display(key_ptr, ENABLER.to_owned(), binding);
                 ptr.str = raw::deref_string(key_ptr);
               };
 
