@@ -3,6 +3,7 @@ use cxx::CxxString;
 use crate::encodings;
 
 pub fn deref<T>(addr: usize) -> T {
+  // TODO: avoid copy
   unsafe { (addr as *const T).read() }
 }
 

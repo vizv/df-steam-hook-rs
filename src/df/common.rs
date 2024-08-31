@@ -32,3 +32,25 @@ impl Color {
     Self { r, g, b }
   }
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Vector {
+  pub begin: usize,
+  pub end: usize,
+  pub capacity: usize,
+}
+
+impl Vector {
+  pub fn at(addr: usize) -> Self {
+    utils::deref(addr)
+  }
+
+  pub fn first<T>(&self) -> Option<&'static T> {
+    if self.begin == 0 || self.begin == self.end {
+      return None;
+    }
+
+    Some(unsafe { &*(self.begin as *const T) })
+  }
+}

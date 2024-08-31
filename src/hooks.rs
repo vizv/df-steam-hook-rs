@@ -82,19 +82,12 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let content = translate(string);
 
-  {
-    let help = GAME.to_owned() + 0x5d40; // TODO: check Windows
-    let target = help + 0x30;
-    for i in 0..20 {
-      let text = target + i * 64;
-      let begin = raw::deref::<usize>(text);
-      let end = raw::deref::<usize>(text + 8);
-      if begin != 0 && begin != end {
-        let word = raw::deref::<usize>(begin);
-        if string == word {
-          MARKUP.write().render(gps, text);
-          return;
-        }
+  let help = df::game::GameMainInterfaceHelp::deref(GAME.to_owned());
+  for text in &help.text {
+    if let Some(word) = text.word.first::<usize>() {
+      if string == word.to_owned() {
+        MARKUP.write().render(gps, text.ptr());
+        return;
       }
     }
   }

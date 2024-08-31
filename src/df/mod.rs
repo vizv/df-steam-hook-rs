@@ -7,5 +7,6 @@ pub mod utils;
 pub mod common;
 
 pub mod enabler;
+pub mod game;
 pub mod graphic;
 pub mod renderer;
