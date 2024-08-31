@@ -13,47 +13,17 @@ use crate::{
 #[static_init::dynamic]
 pub static mut MARKUP: Markup = Default::default();
 
-#[allow(dead_code)]
-enum CursesColor {
-  Black = 0,
-  Blue = 1,
-  Green = 2,
-  Cyan = 3,
-  Red = 4,
-  Magenta = 5,
-  Yellow = 6,
-  White = 7,
-}
-
-#[allow(dead_code, non_camel_case_types)]
-#[derive(Debug)]
-enum LinkType {
-  NONE = -1,
-  HIST_FIG = 0,
-  SITE = 1,
-  ARTIFACT = 2,
-  BOOK = 3,
-  SUBREGION = 4,
-  FEATURE_LAYER = 5,
-  ENTITY = 6,
-  ABSTRACT_BUILDING = 7,
-  ENTITY_POPULATION = 8,
-  ART_IMAGE = 9,
-  ERA = 10,
-  HEC = 11,
-}
-
 // TODO: remove this? as it's parsed by original code already
 #[allow(dead_code)]
 #[derive(Debug)]
 struct MarkupLink {
-  typ: LinkType,
+  typ: df::enums::LinkType,
   id: i32,
   subid: i32,
 }
 
 impl MarkupLink {
-  fn new(typ: LinkType, id: i32, subid: i32) -> Self {
+  fn new(typ: df::enums::LinkType, id: i32, subid: i32) -> Self {
     Self { typ, id, subid }
   }
 }
@@ -97,7 +67,7 @@ impl MarkupTextBox {
 
     let mut str = String::new();
     let mut link_index: i32 = -1;
-    let mut color = CursesColor::White as usize;
+    let mut color = df::enums::CursesColor::White as usize;
     let mut use_char;
     let mut no_split_space;
 
@@ -178,26 +148,26 @@ impl MarkupTextBox {
               i += buff_id.len();
 
               let link_type = match buff_type.as_str() {
-                "HF" => LinkType::HIST_FIG,
-                "SITE" => LinkType::SITE,
-                "ARTIFACT" => LinkType::ARTIFACT,
-                "BOOK" => LinkType::BOOK,
-                "SR" => LinkType::SUBREGION,
-                "LF" => LinkType::FEATURE_LAYER,
-                "ENT" => LinkType::ENTITY,
-                "AB" => LinkType::ABSTRACT_BUILDING,
-                "EPOP" => LinkType::ENTITY_POPULATION,
-                "ART_IMAGE" => LinkType::ART_IMAGE,
-                "ERA" => LinkType::ERA,
-                "HEC" => LinkType::HEC,
-                _ => LinkType::NONE,
+                "HF" => df::enums::LinkType::HIST_FIG,
+                "SITE" => df::enums::LinkType::SITE,
+                "ARTIFACT" => df::enums::LinkType::ARTIFACT,
+                "BOOK" => df::enums::LinkType::BOOK,
+                "SR" => df::enums::LinkType::SUBREGION,
+                "LF" => df::enums::LinkType::FEATURE_LAYER,
+                "ENT" => df::enums::LinkType::ENTITY,
+                "AB" => df::enums::LinkType::ABSTRACT_BUILDING,
+                "EPOP" => df::enums::LinkType::ENTITY_POPULATION,
+                "ART_IMAGE" => df::enums::LinkType::ART_IMAGE,
+                "ERA" => df::enums::LinkType::ERA,
+                "HEC" => df::enums::LinkType::HEC,
+                _ => df::enums::LinkType::NONE,
               };
 
               let id = buff_id.parse::<i32>().unwrap_or(0);
               let mut subid = -1;
 
               match link_type {
-                LinkType::ABSTRACT_BUILDING | LinkType::ART_IMAGE => {
+                df::enums::LinkType::ABSTRACT_BUILDING | df::enums::LinkType::ART_IMAGE => {
                   // Skip over ':'
                   i += 1;
                   if i >= i_max {
@@ -213,7 +183,7 @@ impl MarkupTextBox {
               }
 
               match link_type {
-                LinkType::NONE => {}
+                df::enums::LinkType::NONE => {}
                 _ => {
                   let link = MarkupLink::new(link_type, id, subid);
                   text.link.push(link);
@@ -292,7 +262,7 @@ impl MarkupTextBox {
                 ptr.str = raw::deref_string(key_ptr);
               };
 
-              let base = (GPS.to_owned() + 0x158) + 3 * (CursesColor::Green as usize + 8);
+              let base = (GPS.to_owned() + 0x158) + 3 * (df::enums::CursesColor::Green as usize + 8);
               ptr.red = raw::deref::<u8>(base + 0);
               ptr.green = raw::deref::<u8>(base + 1);
               ptr.blue = raw::deref::<u8>(base + 2);
