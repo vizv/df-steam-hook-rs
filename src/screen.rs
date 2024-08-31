@@ -10,7 +10,6 @@ use crate::{
   df,
   enums::ScreenTexPosFlag,
   font::{CJK_FONT_SIZE, FONT},
-  raw,
 };
 
 pub const CANVAS_FONT_WIDTH: i32 = 8 * 2;
@@ -158,9 +157,7 @@ impl Screen {
       return 0;
     }
 
-    // pub fn add_string_raw(&mut self, x: i32, y: i32, content: String, color: ColorTuple) -> usize {
     // render text or get from cache
-    // let key = (content.clone(), color);
     let key = text.key();
     let (surface_ptr, width) = match self.prev.get(&key) {
       Some((ptr, width)) => (ptr.to_owned() as *mut sdl::SDL_Surface, width.to_owned()),
@@ -208,24 +205,31 @@ impl Screen {
     }
 
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let screen = df::renderer::deref_screen_info(renderer);
+    let sdl_renderer = df::renderer::deref_sdl_renderer(renderer);
+
+    let srcrect = Rect::new(
+      0,
+      0,
+      self.dimension.0 * CANVAS_FONT_WIDTH as u32,
+      self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
+    );
+
+    let df::renderer::ScreenInfo {
+      dispx_z,
+      dispy_z,
+      origin_x,
+      origin_y,
+    } = df::renderer::deref_screen_info(renderer);
+    let dstrect = Rect::new(
+      origin_x as i32,
+      origin_y as i32,
+      self.dimension.0 * dispx_z as u32,
+      self.dimension.1 * dispy_z as u32,
+    );
 
     unsafe {
-      let sdl_renderer = raw::deref(renderer + 0x108);
       let texture = sdl::SDL_CreateTextureFromSurface(sdl_renderer, canvas);
       sdl::SDL_SetTextureScaleMode(texture, sdl::SDL_ScaleMode::SDL_ScaleModeLinear);
-      let srcrect = Rect::new(
-        0,
-        0,
-        self.dimension.0 * CANVAS_FONT_WIDTH as u32,
-        self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
-      );
-      let dstrect = Rect::new(
-        screen.origin_x as i32,
-        screen.origin_y as i32,
-        self.dimension.0 * screen.dispx_z as u32,
-        self.dimension.1 * screen.dispy_z as u32,
-      );
       sdl::SDL_RenderCopy(sdl_renderer, texture, srcrect.raw(), dstrect.raw());
       sdl::SDL_DestroyTexture(texture);
     }
