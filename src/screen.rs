@@ -7,7 +7,6 @@ use std::{
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
 use crate::{
-  config::CONFIG,
   df,
   enums::ScreenTexPosFlag,
   font::{CJK_FONT_SIZE, FONT},
@@ -22,14 +21,6 @@ pub static mut SCREEN: Screen = Screen::new();
 
 #[static_init::dynamic]
 pub static mut SCREEN_TOP: Screen = Screen::new();
-
-#[repr(C)]
-struct ScreenInfo {
-  pub dispx_z: i32,
-  pub dispy_z: i32,
-  pub origin_x: i32,
-  pub origin_y: i32,
-}
 
 pub struct ScreenText {
   coord: df::common::Coord<i32>,
@@ -217,8 +208,7 @@ impl Screen {
     }
 
     let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let screen =
-      raw::deref::<ScreenInfo>(renderer + CONFIG.offset.as_ref().unwrap().renderer_offset_screen_info.unwrap());
+    let screen = df::renderer::deref_screen_info(renderer);
 
     unsafe {
       let sdl_renderer = raw::deref(renderer + 0x108);

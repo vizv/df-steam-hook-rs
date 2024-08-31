@@ -1,11 +1,7 @@
-use super::{common, utils};
-
-const SCREENX_OFFSET: usize = 0x84;
-const SCREENF_OFFSET: usize = 0x8c; // TODO: check this on Windows
-const UCCOLOR_SCREENF_OFFSET: usize = 0xcc; // TODO: check this on Windows
+use super::{common, offsets, utils};
 
 pub fn deref_coord(addr: usize) -> common::Coord<i32> {
-  common::Coord::at(addr + SCREENX_OFFSET)
+  common::Coord::at(addr + offsets::GRAPHIC_SCREENX)
 }
 
 #[derive(Debug)]
@@ -29,11 +25,11 @@ pub fn deref_color(addr: usize) -> common::Color {
     screen_color_g: g,
     screen_color_b: b,
     ..
-  } = utils::deref(addr + SCREENF_OFFSET);
+  } = utils::deref(addr + offsets::GRAPHIC_SCREENF);
 
   if use_old_16_colors {
     let fg = (screenf + if screenbright { 8 } else { 0 }) as usize;
-    let uccolor_base = addr + SCREENF_OFFSET + UCCOLOR_SCREENF_OFFSET;
+    let uccolor_base = addr + offsets::GRAPHIC_SCREENF + offsets::GRAPHIC_SCREENF_UCCOLOR;
     common::Color::at(uccolor_base + fg * 3)
   } else {
     common::Color::rgb(r, g, b)
