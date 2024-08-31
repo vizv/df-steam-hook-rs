@@ -7,8 +7,8 @@ use crate::dictionary::DICTIONARY;
 use crate::enums::ScreenTexPosFlag;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
-use crate::screen::{CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP};
-use crate::{df, raw, utils};
+use crate::screen::{ScreenText, SCREEN, SCREEN_TOP};
+use crate::{raw, utils};
 
 use r#macro::hook;
 
@@ -69,16 +69,10 @@ fn translate(string: usize) -> String {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
-  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(
-    gps,
-    coords.x * CANVAS_FONT_WIDTH,
-    coords.y * CANVAS_FONT_HEIGHT,
-    content,
-    0,
-  );
+  let text = ScreenText::new(content).by_graphic(gps);
+  let width = SCREEN.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -87,7 +81,6 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
-  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
   {
@@ -100,26 +93,15 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
       if begin != 0 && begin != end {
         let word = raw::deref::<usize>(begin);
         if string == word {
-          unsafe {
-            let ox = *((word + 0x28) as *const i32);
-            let oy = *((word + 0x2c) as *const i32);
-            let x = coords.x - ox;
-            let y = coords.y - oy;
-            MARKUP.write().render(text, x, y);
-          }
+          MARKUP.write().render(gps, text);
           return;
         }
       }
     }
   }
 
-  let width = SCREEN_TOP.write().add(
-    gps,
-    coords.x * CANVAS_FONT_WIDTH,
-    coords.y * CANVAS_FONT_HEIGHT,
-    content,
-    0,
-  );
+  let text = ScreenText::new(content).by_graphic(gps);
+  let width = SCREEN_TOP.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space) };
@@ -128,16 +110,10 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
-  let coords = df::graphic::deref_coordinate(gps);
   let content = translate(string);
 
-  let width = SCREEN.write().add(
-    gps,
-    coords.x * CANVAS_FONT_WIDTH,
-    coords.y * CANVAS_FONT_HEIGHT,
-    content,
-    sflag,
-  );
+  let text = ScreenText::new(content).by_graphic(gps).with_sflag(sflag);
+  let width = SCREEN.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
   unsafe { original!(gps, dummy_ptr, just, space, sflag) };
@@ -191,27 +167,37 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
-fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
+fn mtb_process_string_to_lines(text: usize, src: usize) {
   let content = translate(src);
 
-  unsafe { original!(markup_text_box, src) };
+  unsafe { original!(text, src) };
 
   // TODO: may need regexp for some scenarios like world generation status (0x22fa459)
-  // TODO: log unknown markup_text_box (during world generation)
+  // TODO: log unknown text (during world generation)
   // examples: (they are coming from "data/vanilla/vanilla_buildings/objects/building_custom.txt")
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  MARKUP.write().add(markup_text_box, &content);
+  MARKUP.write().add(text, &content);
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
-fn mtb_set_width(markup_text_box: usize, current_width: i32) {
-  let max_y = MARKUP.write().layout(markup_text_box, current_width);
+fn mtb_set_width(text: usize, current_width: i32) {
+  let max_y = MARKUP.write().layout(text, current_width);
+
+  let begin = raw::deref::<usize>(text);
+  let end = raw::deref::<usize>(text + 8);
+  if begin != 0 && begin != end {
+    let word = raw::deref::<usize>(begin);
+    unsafe {
+      *((word + 0x28) as *mut i32) = 0;
+      *((word + 0x2c) as *mut i32) = 0;
+    }
+  }
 
   unsafe {
-    *((markup_text_box + 0x34) as *mut i32) = max_y;
-    *((markup_text_box + 0x30) as *mut i32) = 0;
+    *((text + 0x34) as *mut i32) = max_y;
+    *((text + 0x30) as *mut i32) = 0;
   }
 }
 

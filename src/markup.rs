@@ -7,7 +7,7 @@ use crate::{
   font::FONT,
   global::{get_key_display, ENABLER, GPS},
   raw,
-  screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
+  screen::{ColorTuple, ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
 
 #[static_init::dynamic]
@@ -75,7 +75,7 @@ struct MarkupWord {
   blue: u8,
   link_index: i32,
   x: i32,
-  py: i32,
+  py: i32, // TODO: change this to pixels
   flags: MarkupWordFlag,
 }
 
@@ -562,28 +562,14 @@ impl Markup {
     -1
   }
 
-  pub fn render(&self, address: usize, x: i32, y: i32) {
+  pub fn render(&self, gps: usize, address: usize) {
     if let Some(text) = self.items.get(&address) {
-      let gps = GPS.to_owned();
-      let color_base = gps + 0x8c; // TODO: check Windows offset
-      let color = color_base as *mut screen::ColorInfo;
-
       for word in &text.word {
         let wx = word.x;
         let wy = word.py * CANVAS_FONT_HEIGHT;
-        unsafe {
-          (*color).use_old_16_colors = false;
-          (*color).screen_color_r = word.red;
-          (*color).screen_color_g = word.green;
-          (*color).screen_color_b = word.blue;
-        }
-        SCREEN_TOP.write().add(
-          gps,
-          wx + CANVAS_FONT_WIDTH * x,
-          wy + CANVAS_FONT_HEIGHT * y,
-          word.str.clone(),
-          0,
-        );
+        let color = ColorTuple::rgb(word.red, word.green, word.blue);
+        let text = ScreenText::new(word.str.clone()).by_graphic(gps).with_offset(wx, wy).with_color(color);
+        SCREEN_TOP.write().add_text(text);
       }
     }
   }
