@@ -5,7 +5,7 @@ use retour::static_detour;
 use crate::config::CONFIG;
 use crate::dictionary::DICTIONARY;
 use crate::enums::ScreenTexPosFlag;
-use crate::global::GPS;
+use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP};
 use crate::{raw, utils};
@@ -95,11 +95,75 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
   unsafe { original!(gps, dummy_ptr, just, space) };
 }
 
+// fn debug(string: usize) {
+//   let help = GAME.to_owned() + 0x5d40; // TODO: check Windows
+//   let target = help + 0x30;
+//   for i in 0..20 {
+//     let begin = raw::deref::<usize>(target + i * 64);
+//     let end = raw::deref::<usize>(target + i * 64 + 8);
+//     if begin != 0 && begin != end {
+//       // log::warn!("?????? 0x{begin:x}");
+//       let word_str = raw::deref::<usize>(begin);
+//       // log::warn!("??? addst_top(0x{string:x}) / 0x{word_str:x}");
+//       if string == word_str {
+//         return;
+//       }
+//     }
+//     // let begin_ptr = (target + i * 64) as *const usize;
+//     // let end_ptr = (target + i * 64 + 8) as *const usize;
+//     // unsafe {
+//     //   stored_end[i] = *end_ptr;
+//     //   *end_ptr = *begin_ptr + 8;
+//     // };
+//     // log::warn!("??? render_help_dialog {i}: 0x{:x}", target + i * 64);
+//   }
+//   // game + 0x5d40
+//   // if MARKUP.read().rendering {
+//   //   log::warn!("skip addst_top(0x{string:x}) at ({x},{y}): {content}");
+//   //   return;
+//   // }
+// }
+
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let (x, y) = gps_get_screen_coord(gps);
   let content = translate(string);
+
+  // debug(string);
+  {
+    let help = GAME.to_owned() + 0x5d40; // TODO: check Windows
+    let target = help + 0x30;
+    for i in 0..20 {
+      let text = target + i * 64;
+      let begin = raw::deref::<usize>(text);
+      let end = raw::deref::<usize>(text + 8);
+      if begin != 0 && begin != end {
+        // log::warn!("?????? 0x{begin:x}");
+        let word = raw::deref::<usize>(begin);
+        // log::warn!("??? addst_top(0x{string:x}) / 0x{word_str:x}");
+        if string == word {
+          unsafe {
+            let ox = *((word + 0x28) as *const i32);
+            let oy = *((word + 0x2c) as *const i32);
+            let x = x - ox;
+            let y = y - oy;
+            // log::warn!("skip addst_top(0x{string:x}) at ({x},{y}): {content}");
+            // panic!("!");
+            MARKUP.write().render(text, x, y);
+          }
+          return;
+        }
+      }
+      // let begin_ptr = (target + i * 64) as *const usize;
+      // let end_ptr = (target + i * 64 + 8) as *const usize;
+      // unsafe {
+      //   stored_end[i] = *end_ptr;
+      //   *end_ptr = *begin_ptr + 8;
+      // };
+      // log::warn!("??? render_help_dialog {i}: 0x{:x}", target + i * 64);
+    }
+  }
 
   let width = SCREEN_TOP.write().add(gps, x * CANVAS_FONT_WIDTH, y * CANVAS_FONT_HEIGHT, content, 0);
   let_cxx_string!(dummy = " ".repeat(width));
@@ -201,33 +265,41 @@ fn mtb_process_string_to_lines(markup_text_box: usize, src: usize) {
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
 fn mtb_set_width(markup_text_box: usize, current_width: i32) {
-  log::info!("??? mtb_set_width 0x{markup_text_box:x} {current_width}");
+  // log::info!("??? mtb_set_width 0x{markup_text_box:x} {current_width}");
 
   // log::warn!("??? before mtb_set_width");
   // unsafe { original!(markup_text_box, current_width) };
   // log::warn!("??? after mtb_set_width");
-  MARKUP.write().layout(markup_text_box, current_width);
+  let max_y = MARKUP.write().layout(markup_text_box, current_width);
   // unsafe { *((markup_text_box + 0x30) as *mut i32) = 0 };
+
+  unsafe {
+    *((markup_text_box + 0x34) as *mut i32) = max_y;
+    *((markup_text_box + 0x30) as *mut i32) = 0;
+    // log::info!("??? mtb_set_width set max_y to {max_y}");
+  }
 }
 
 static mut SAVED_CONTEXT: u32 = u32::MAX;
 
-fn x() {
-  // //   let mut vec = CxxVector::<usize>::new();
-  // //   // let vec_ptr: usize = unsafe { core::mem::transmute(vec) };
-  // //   let mut vecz = CxxVector::<usize>::new();
-  // //   core::mem::swap(&mut vec, &mut vecz);
-  //   let target: usize = 0x30;
-  //   let mut stored_end = [0; 20];
-  //   for i in 0..20 {
-  //     stored_end[i] = raw::deref::<usize>(target + i * 64 + 8);
-  //   }
-  let bl: i32 = 0;
-  let x = &bl as *const i32 as usize;
-}
+// fn x() {
+//   // //   let mut vec = CxxVector::<usize>::new();
+//   // //   // let vec_ptr: usize = unsafe { core::mem::transmute(vec) };
+//   // //   let mut vecz = CxxVector::<usize>::new();
+//   // //   core::mem::swap(&mut vec, &mut vecz);
+//   //   let target: usize = 0x30;
+//   //   let mut stored_end = [0; 20];
+//   //   for i in 0..20 {
+//   //     stored_end[i] = raw::deref::<usize>(target + i * 64 + 8);
+//   //   }
+//   let bl: i32 = 0;
+//   let x = &bl as *const i32 as usize;
+// }
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
 fn render_help_dialog(help: usize) {
+  // MARKUP.write().rendering = true;
+
   // let bl: i32 = 0;
   // let br: i32 = 0;
   // let bt: i32 = 0;
@@ -242,7 +314,6 @@ fn render_help_dialog(help: usize) {
   // // );
   // log::warn!("??? render_help_dialog: 0x{help:x} - {bl},{br},{bt},{bb}");
 
-
   let save = CxxVector::<usize>::new();
   let save_ptr: usize = unsafe { core::mem::transmute(save) };
   let stub = CxxVector::<usize>::new();
@@ -254,7 +325,7 @@ fn render_help_dialog(help: usize) {
     let end_ptr = (target + i * 64 + 8) as *mut usize;
     unsafe {
       stored_end[i] = *end_ptr;
-      *end_ptr = *begin_ptr;
+      *end_ptr = *begin_ptr + 8;
     };
     // log::warn!("??? render_help_dialog {i}: 0x{:x}", target + i * 64);
   }
@@ -288,6 +359,8 @@ fn render_help_dialog(help: usize) {
     let end_ptr = (target + i * 64 + 8) as *mut usize;
     unsafe { *end_ptr = stored_end[i] };
   }
+
+  // MARKUP.write().rendering = false;
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "0136e770"))]
@@ -306,7 +379,7 @@ fn debug_get_dialog_size(help: usize, pl: usize, pr: usize, pt: usize, pb: usize
   let pt = raw::deref::<i32>(pt);
   let pb = raw::deref::<i32>(pb);
   // log::info!("debug_get_dialog_size({pl},{pr},{pt},{pb})");
-  let mut markup = MARKUP.write();
-  markup.x = pl;
-  markup.y = pt;
+  // let mut markup = MARKUP.write();
+  // markup.x = pl;
+  // markup.y = pt;
 }

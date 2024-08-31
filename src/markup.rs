@@ -536,8 +536,9 @@ impl MarkupTextBox {
 #[derive(Default)]
 pub struct Markup {
   items: HashMap<usize, MarkupTextBox>,
-  pub x: i32,
-  pub y: i32,
+  // pub x: i32,
+  // pub y: i32,
+  // pub rendering: bool,
 }
 
 impl Markup {
@@ -547,7 +548,7 @@ impl Markup {
     self.items.insert(address, text);
   }
 
-  pub fn layout(&mut self, address: usize, current_width: i32) -> bool {
+  pub fn layout(&mut self, address: usize, current_width: i32) -> i32 {
     if let Some(text) = self.items.get_mut(&address) {
       text.set_width(current_width);
       // let word = raw::deref_vector::<usize>(address);
@@ -557,50 +558,83 @@ impl Markup {
       // log::info!("??? {:?}", text);
 
       // XXX debug
-      {
-        let gps = GPS.to_owned();
-        let color_base = gps + 0x8c; // TODO: check Windows offset
-        let color = raw::deref_mut::<screen::ColorInfo>(color_base);
+      // {
+      //   let gps = GPS.to_owned();
+      //   let color_base = gps + 0x8c; // TODO: check Windows offset
+      //   let color = raw::deref_mut::<screen::ColorInfo>(color_base);
 
-        // 0x1f80340
-        let saved_screenx = raw::deref::<i32>(gps + 0x84);
-        let saved_screeny = raw::deref::<i32>(gps + 0x88);
+      //   // 0x1f80340
+      //   let saved_screenx = raw::deref::<i32>(gps + 0x84);
+      //   let saved_screeny = raw::deref::<i32>(gps + 0x88);
 
-        for word in &text.word {
-          let x = word.x;
-          let y = word.py * CANVAS_FONT_HEIGHT;
-          unsafe {
-            (*raw::deref_mut::<i32>(gps + 0x84)) = x;
-            (*raw::deref_mut::<i32>(gps + 0x88)) = y;
-            (*color).use_old_16_colors = false;
-            (*color).screen_color_r = word.red;
-            (*color).screen_color_g = word.green;
-            (*color).screen_color_b = word.blue;
-          }
-          SCREEN_TOP.write().add(
-            gps,
-            x + CANVAS_FONT_WIDTH * (self.x + 2),
-            y + CANVAS_FONT_HEIGHT * (self.y + 7),
-            word.str.clone(),
-            0,
-          );
-          // log::info!("??? 0x{gps:x} {:?}", word);
-        }
+      //   for word in &text.word {
+      //     let x = word.x;
+      //     let y = word.py * CANVAS_FONT_HEIGHT;
+      //     unsafe {
+      //       (*raw::deref_mut::<i32>(gps + 0x84)) = x;
+      //       (*raw::deref_mut::<i32>(gps + 0x88)) = y;
+      //       (*color).use_old_16_colors = false;
+      //       (*color).screen_color_r = word.red;
+      //       (*color).screen_color_g = word.green;
+      //       (*color).screen_color_b = word.blue;
+      //     }
+      //     SCREEN_TOP.write().add(
+      //       gps,
+      //       x + CANVAS_FONT_WIDTH * (self.x + 2),
+      //       y + CANVAS_FONT_HEIGHT * (self.y + 7),
+      //       word.str.clone(),
+      //       0,
+      //     );
+      //     // log::info!("??? 0x{gps:x} {:?}", word);
+      //   }
 
-        unsafe {
-          (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
-          (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
-        }
-      }
+      //   unsafe {
+      //     (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
+      //     (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
+      //   }
+      // }
 
-      unsafe {
-        *((address + 0x30) as *mut i32) = text.current_width;
-        *((address + 0x34) as *mut i32) = text.max_y;
-      }
-
-      return true;
+      return text.max_y;
     }
 
-    false
+    -1
+  }
+
+  pub fn render(&self, address: usize, x: i32, y: i32) {
+    if let Some(text) = self.items.get(&address) {
+      let gps = GPS.to_owned();
+      let color_base = gps + 0x8c; // TODO: check Windows offset
+      let color = raw::deref_mut::<screen::ColorInfo>(color_base);
+
+      // 0x1f80340
+      // let saved_screenx = raw::deref::<i32>(gps + 0x84);
+      // let saved_screeny = raw::deref::<i32>(gps + 0x88);
+
+      for word in &text.word {
+        let wx = word.x;
+        let wy = word.py * CANVAS_FONT_HEIGHT;
+        unsafe {
+          // (*raw::deref_mut::<i32>(gps + 0x84)) = x;
+          // (*raw::deref_mut::<i32>(gps + 0x88)) = y;
+          (*color).use_old_16_colors = false;
+          (*color).screen_color_r = word.red;
+          (*color).screen_color_g = word.green;
+          (*color).screen_color_b = word.blue;
+        }
+        SCREEN_TOP.write().add(
+          gps,
+          wx + CANVAS_FONT_WIDTH * x,
+          wy + CANVAS_FONT_HEIGHT * y,
+          word.str.clone(),
+          0,
+        );
+        // log::info!("??? 0x{gps:x} {:?}", word);
+      }
+
+      // unsafe {
+      //   (*raw::deref_mut::<i32>(gps + 0x84)) = saved_screenx;
+      //   (*raw::deref_mut::<i32>(gps + 0x88)) = saved_screeny;
+      // }
+    }
   }
 }

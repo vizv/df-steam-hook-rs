@@ -39,3 +39,8 @@ pub static GPS: usize = {
     false => 0 as usize,
   }
 };
+
+// TODO: use config
+#[cfg(target_os = "linux")]
+#[static_init::dynamic]
+pub static GAME: usize = 0x21d4380;

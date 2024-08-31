@@ -11,6 +11,7 @@ pub fn install() {
     let state = DeviceState::new();
     let mut hook_enabled: bool = true;
 
+    // TODO: only disable hook after render loop
     while !*KILL.read() {
       let keys = state.query_keymap();
       if keys.contains(&Keycode::F2) && keys.contains(&Keycode::LControl) {
