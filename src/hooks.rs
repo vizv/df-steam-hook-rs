@@ -58,7 +58,7 @@ pub unsafe fn disable_all() -> Result<()> {
 
 // FIXME: render the font, get real width, divided by 2, ceil it to curses font width
 fn translate(string: usize) -> String {
-  let mut content = raw::deref_string(string);
+  let mut content = df::utils::deref_string(string);
   if let Some(translated) = DICTIONARY.get(&content) {
     content = translated.to_owned();
   }

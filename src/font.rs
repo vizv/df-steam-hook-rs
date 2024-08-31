@@ -5,9 +5,8 @@ use std::io::Read;
 use std::{mem, ptr};
 
 use crate::config::CONFIG;
-use crate::cp437::UTF8_CHAR_TO_CP437;
 use crate::global::ENABLER;
-use crate::{raw, utils};
+use crate::{encodings, raw, utils};
 
 pub const CURSES_FONT_WIDTH: u32 = 16;
 pub const CJK_FONT_SIZE: u32 = 24;
@@ -60,7 +59,7 @@ impl Font {
     let curses_surface_base =
       raw::deref::<usize>(enabler + CONFIG.offset.as_ref().unwrap().enabler_offset_curses_glyph_texture.unwrap());
 
-    if let Some(&code) = UTF8_CHAR_TO_CP437.get(&ch) {
+    if let Some(&code) = encodings::cp437::UTF8_CHAR_TO_CP437.get(&ch) {
       return (raw::deref::<usize>(curses_surface_base + (code as usize * 8)), true);
     };
 

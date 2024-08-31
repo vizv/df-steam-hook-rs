@@ -259,7 +259,7 @@ impl MarkupTextBox {
                 let_cxx_string!(key = "");
                 let key_ptr: usize = core::mem::transmute(key);
                 get_key_display(key_ptr, ENABLER.to_owned(), binding);
-                ptr.str = raw::deref_string(key_ptr);
+                ptr.str = df::utils::deref_string(key_ptr);
               };
 
               let base = (GPS.to_owned() + 0x158) + 3 * (df::enums::CursesColor::Green as usize + 8);
