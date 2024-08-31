@@ -21,7 +21,6 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_update_all()?;
   attach_update_tile()?;
 
-  attach_add_paragraph()?;
   attach_mtb_process_string_to_lines()?;
   attach_mtb_set_width()?;
   attach_render_help_dialog()?;
@@ -37,7 +36,6 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_update_all()?;
   enable_update_tile()?;
 
-  enable_add_paragraph()?;
   // always enable mtb_process_string_to_lines:
   // enable_mtb_process_string_to_lines()?;
   enable_mtb_set_width()?;
@@ -54,7 +52,6 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_update_all()?;
   disable_update_tile()?;
 
-  disable_add_paragraph()?;
   // always enable mtb_process_string_to_lines:
   // disable_mtb_process_string_to_lines()?;
   disable_mtb_set_width()?;
@@ -182,20 +179,6 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
   }
 
   SCREEN.write().render(renderer);
-}
-
-#[cfg_attr(
-  target_os = "linux",
-  hook(
-    module = "self",
-    symbol = "_ZN17curses_text_boxst13add_paragraphERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi"
-  )
-)]
-fn add_paragraph(text_box: usize, src: usize, para_width: i32) {
-  let mut content = raw::deref_string(src);
-  unsafe {
-    original!(text_box, src, para_width);
-  }
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b77c0"))]
