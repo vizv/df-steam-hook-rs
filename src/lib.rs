@@ -14,7 +14,6 @@ mod font;
 mod global;
 mod hooks;
 mod markup;
-mod raw;
 mod screen;
 mod utils;
 mod watchdog;

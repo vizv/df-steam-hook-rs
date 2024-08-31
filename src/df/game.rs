@@ -1,4 +1,4 @@
-use super::{common, offsets, utils};
+use super::{common, offsets};
 
 #[derive(Debug)]
 #[repr(C)]

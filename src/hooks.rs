@@ -7,7 +7,7 @@ use crate::dictionary::DICTIONARY;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{ScreenText, SCREEN, SCREEN_TOP};
-use crate::{df, raw, utils};
+use crate::{df, utils};
 
 use r#macro::hook;
 
