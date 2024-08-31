@@ -28,6 +28,7 @@ pub unsafe fn attach_all() -> Result<()> {
 
   // attach_debug_get_main_interface_dims()?;
   attach_debug_get_dialog_size()?;
+  // attach_get_key_display()?;
   Ok(())
 }
 
@@ -382,4 +383,18 @@ fn debug_get_dialog_size(help: usize, pl: usize, pr: usize, pt: usize, pb: usize
   // let mut markup = MARKUP.write();
   // markup.x = pl;
   // markup.y = pt;
+}
+
+#[cfg_attr(
+  target_os = "linux",
+  hook(module = "libg_src_lib.so", symbol = "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei")
+)]
+fn get_key_display(output: usize, enabler: usize, binding: i32) {
+  unsafe { original!(output, enabler, binding) };
+  let key = raw::deref_string(output);
+  let fa: usize = unsafe { utils::symbol_handle("libg_src_lib.so", "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei") };
+  log::warn!(
+    "get_key_display@0x{:x}|0x{fa:x}(0x{output:x}, 0x{enabler:x}, {binding}) / {key}",
+    get_key_display as usize
+  );
 }

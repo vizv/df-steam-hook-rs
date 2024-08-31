@@ -1,12 +1,14 @@
 use bitflags::bitflags;
+use cxx::let_cxx_string;
 use std::collections::HashMap;
 
 use crate::{
   cjk,
   font::{self, FONT},
-  global::GPS,
+  global::{ENABLER, GPS},
   raw,
   screen::{self, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN, SCREEN_TOP},
+  utils,
 };
 
 const CURSES_FONT_WIDTH: i32 = font::CURSES_FONT_WIDTH as i32;
@@ -285,7 +287,21 @@ impl MarkupTextBox {
               i += buff.len();
 
               let mut ptr: MarkupWord = Default::default();
+              let binding = buff.parse::<i32>().unwrap_or(0);
+              // let get_key_display_ptr = unsafe()
               // TODO: ptr->str = df::global::enabler->GetKeyDisplay((df::interface_key)atoi(buff.c_str()));
+              unsafe {
+                let enabler = ENABLER.to_owned();
+                let get_key_display = utils::symbol_handle::<fn(usize, usize, i32)>(
+                  "libg_src_lib.so",
+                  "_ZN15enabler_inputst13GetKeyDisplayB5cxx11Ei",
+                );
+                // let get_key_display = *(fa as *const fn(usize, usize, i32));
+                let_cxx_string!(key = "");
+                let key_ptr: usize = core::mem::transmute(key);
+                get_key_display(key_ptr, enabler, binding);
+                ptr.str = raw::deref_string(key_ptr);
+              };
 
               let base = (GPS.to_owned() + 0x158) + 3 * (CursesColor::Green as usize + 8);
               ptr.red = raw::deref::<u8>(base + 0);
