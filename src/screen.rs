@@ -41,23 +41,14 @@ pub struct ColorInfo {
   pub screen_color_r: u8,
   pub screen_color_g: u8,
   pub screen_color_b: u8,
-  pub screen_color_br: u8,
-  pub screen_color_bg: u8,
-  pub screen_color_bb: u8,
 }
 
 // TODO: move to df::common
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ColorTuple {
   pub r: u8,
   pub g: u8,
   pub b: u8,
-}
-
-impl Default for ColorTuple {
-  fn default() -> Self {
-    Self { r: 255, g: 255, b: 255 }
-  }
 }
 
 impl ColorTuple {
@@ -95,7 +86,6 @@ impl ScreenText {
     let color = raw::deref::<ColorInfo>(color_base);
     let color = if color.use_old_16_colors {
       let fg = (color.screenf + if color.screenbright { 8 } else { 0 }) as usize;
-      let bg = color.screenb as usize;
       let uccolor_base = color_base + 0xcc;
       ColorTuple {
         r: raw::deref::<u8>(uccolor_base + fg * 3 + 0),
@@ -155,7 +145,7 @@ impl ColoredText {
   pub fn new(content: String) -> Self {
     Self {
       content,
-      color: Default::default(),
+      color: ColorTuple::rgb(255, 255, 255),
     }
   }
 
