@@ -173,20 +173,17 @@ fn mtb_process_string_to_lines(text: usize, src: usize) {
 fn mtb_set_width(text: usize, current_width: i32) {
   let max_y = MARKUP.write().layout(text, current_width);
 
-  let begin = raw::deref::<usize>(text);
-  let end = raw::deref::<usize>(text + 8);
-  if begin != 0 && begin != end {
-    let word = raw::deref::<usize>(begin);
+  let mut text = df::game::MarkupTextBox::at_mut(text);
+  if let Some(word) = text.word.first::<usize>() {
+    let word = word.to_owned();
     unsafe {
       *((word + 0x28) as *mut i32) = 0;
       *((word + 0x2c) as *mut i32) = 0;
     }
   }
 
-  unsafe {
-    *((text + 0x34) as *mut i32) = max_y;
-    *((text + 0x30) as *mut i32) = 0;
-  }
+  text.current_width = 0;
+  text.max_y = max_y;
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]

@@ -1,4 +1,4 @@
-use super::{common, offsets};
+use super::{common, offsets, utils};
 
 #[derive(Debug)]
 #[repr(C)]
@@ -11,6 +11,10 @@ pub struct MarkupTextBox {
 }
 
 impl MarkupTextBox {
+  pub fn at_mut(addr: usize) -> &'static mut Self {
+    unsafe { &mut *(addr as *mut Self) }
+  }
+
   pub fn ptr(&self) -> usize {
     self as *const MarkupTextBox as usize
   }
