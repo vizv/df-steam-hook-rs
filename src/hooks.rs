@@ -146,16 +146,11 @@ fn update_all(renderer: usize) {
   SCREEN_TOP.write().clear();
 }
 
-struct Dimension {
-  x: i32,
-  y: i32,
-}
-
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
-  let dim = raw::deref::<Dimension>(GPS.to_owned() + CONFIG.offset.as_ref().unwrap().gps_offset_dimension.unwrap());
+  let dim = df::graphic::deref_dim(GPS.to_owned());
 
   // hack to render text after the last update_tile in update_all
   // TODO: consider re-write update_all function completely according to g_src

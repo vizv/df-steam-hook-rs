@@ -13,6 +13,8 @@ impl<T> Coord<T> {
   }
 }
 
+pub type Dimension<T> = Coord<T>;
+
 #[repr(C)]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Color {

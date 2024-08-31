@@ -58,7 +58,6 @@ pub struct OffsetsMetadata {
 pub struct OffsetsValues {
   pub enabler: Option<usize>,
   pub gps: Option<usize>,
-  pub gps_offset_dimension: Option<usize>,
   pub addst: Option<usize>,
   pub addst_top: Option<usize>,
   pub addst_flag: Option<usize>,

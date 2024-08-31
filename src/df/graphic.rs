@@ -4,6 +4,10 @@ pub fn deref_coord(addr: usize) -> common::Coord<i32> {
   common::Coord::at(addr + offsets::GRAPHIC_SCREENX)
 }
 
+pub fn deref_dim(addr: usize) -> common::Dimension<i32> {
+  common::Dimension::at(addr + offsets::GRAPHIC_DIMX)
+}
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct ColorInfo {
