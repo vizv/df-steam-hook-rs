@@ -62,11 +62,19 @@ pub static get_key_display: fn(usize, usize, i32) = unsafe {
   }
 };
 
+// #[allow(non_upper_case_globals)]
+// #[cfg(target_os = "windows")]
+// #[static_init::dynamic]
+// pub static get_key_display: fn(usize, usize, i32) = unsafe {
+//   match CONFIG.offset.is_some() {
+//     true => *(utils::address(CONFIG.offset.as_ref().unwrap().get_key_display.unwrap()) as *const fn(usize, usize, i32)),
+//     false => |_, _, _| {},
+//   }
+// };
+
+#[allow(non_upper_case_globals)]
 #[cfg(target_os = "windows")]
-#[static_init::dynamic]
-pub static get_key_display: fn(usize, usize, i32) = {
-  match CONFIG.offset.is_some() {
-    true => utils::address(CONFIG.offset.as_ref().unwrap().get_key_display.unwrap()),
-    false => 0 as usize,
-  }
-};
+pub fn get_key_display(str_ptr: usize, enabler: usize, binding: i32) {
+  log::warn!("??? proxy call to get_key_display(0x{str_ptr:x}, 0x{enabler:x}, {binding})");
+  // get_key_display_fn(str_ptr, enabler, binding);
+}

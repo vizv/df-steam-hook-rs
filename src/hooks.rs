@@ -23,6 +23,8 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_mtb_set_width()?;
   attach_render_help_dialog()?;
 
+  // debug
+  attach_get_key_display()?;
   Ok(())
 }
 
@@ -163,8 +165,10 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn mtb_process_string_to_lines(text: usize, src: usize) {
   let content = translate(src);
+  // log::warn!("??? 0x{text:x}: {content}");
 
   unsafe { original!(text, src) };
 
@@ -178,8 +182,10 @@ fn mtb_process_string_to_lines(text: usize, src: usize) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn mtb_set_width(text_address: usize, current_width: i32) {
   let max_y = MARKUP.write().layout(text_address, current_width);
+  // log::warn!("??? 0x{text_address:x}: {current_width}");
 
   // skip original function for help texts
   let help = df::game::GameMainInterfaceHelp::borrow_mut_from(GAME.to_owned());
@@ -206,6 +212,7 @@ fn mtb_set_width(text_address: usize, current_width: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn render_help_dialog(help_address: usize) {
   let help = df::game::GameMainInterfaceHelp::borrow_mut_at(help_address);
 
@@ -224,4 +231,12 @@ fn render_help_dialog(help_address: usize) {
   for (i, text) in &mut help.text.iter_mut().enumerate() {
     text.word.end = stored_end[i];
   }
+}
+
+#[cfg_attr(target_os = "linux", hook(bypass))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn get_key_display(enabler: usize, str_ptr: usize, binding: i32) {
+  unsafe { original!(enabler, str_ptr, binding) };
+  let content = df::utils::deref_string(str_ptr);
+  log::warn!("??? real call to get_key_display(0x{str_ptr:x}, 0x{enabler:x}, {binding}) -> {content}");
 }

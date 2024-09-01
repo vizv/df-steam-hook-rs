@@ -3,7 +3,7 @@ use super::{common, offsets};
 #[derive(Debug)]
 #[repr(C)]
 pub struct MarkupTextWord {
-  pub str: [u8; 32], // TODO: fix this for Windows
+  pub str: [u8; 32],
   pub red: u8,
   pub green: u8,
   pub blue: u8,
