@@ -184,22 +184,17 @@ fn mtb_set_width(text: usize, current_width: i32) {
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
-fn render_help_dialog(help: usize) {
-  let target = help + 0x30;
+fn render_help_dialog(help_address: usize) {
+  let help = df::game::GameMainInterfaceHelp::borrow_mut_at(help_address);
   let mut stored_end = [0; 20];
-  for i in 0..20 {
-    let begin_ptr = (target + i * 64) as *const usize;
-    let end_ptr = (target + i * 64 + 8) as *mut usize;
-    unsafe {
-      stored_end[i] = *end_ptr;
-      *end_ptr = *begin_ptr + 8;
-    };
+  for (i, text) in &mut help.text.iter_mut().enumerate() {
+    stored_end[i] = text.word.end;
+    text.word.end = text.word.begin + 8;
   }
 
-  unsafe { original!(help) };
+  unsafe { original!(help_address) };
 
-  for i in 0..20 {
-    let end_ptr = (target + i * 64 + 8) as *mut usize;
-    unsafe { *end_ptr = stored_end[i] };
+  for (i, text) in &mut help.text.iter_mut().enumerate() {
+    text.word.end = stored_end[i];
   }
 }

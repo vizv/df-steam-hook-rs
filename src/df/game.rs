@@ -45,7 +45,19 @@ pub struct GameMainInterfaceHelp {
 }
 
 impl GameMainInterfaceHelp {
+  pub fn borrow_at(addr: usize) -> &'static Self {
+    unsafe { &*((addr) as *const GameMainInterfaceHelp) }
+  }
+
   pub fn borrow_from(addr: usize) -> &'static Self {
-    unsafe { &*((addr + offsets::GAME_MAIN_INTERFACE_HELP) as *const GameMainInterfaceHelp) }
+    Self::borrow_at(addr + offsets::GAME_MAIN_INTERFACE_HELP)
+  }
+
+  pub fn borrow_mut_at(addr: usize) -> &'static mut Self {
+    unsafe { &mut *((addr) as *mut GameMainInterfaceHelp) }
+  }
+
+  pub fn borrow_mut_from(addr: usize) -> &'static mut Self {
+    Self::borrow_mut_at(addr + offsets::GAME_MAIN_INTERFACE_HELP)
   }
 }
