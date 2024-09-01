@@ -1,8 +1,8 @@
-use std::{
-  collections::HashMap,
-  hash::{DefaultHasher, Hash, Hasher},
-  mem, ptr,
-};
+pub mod colored_text;
+pub mod constants;
+pub mod text;
+
+use std::{collections::HashMap, mem, ptr};
 
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
 
@@ -11,103 +11,11 @@ use crate::{
   font::{CJK_FONT_SIZE, FONT},
 };
 
-pub const CANVAS_FONT_WIDTH: i32 = 8 * 2;
-pub const CANVAS_FONT_HEIGHT: i32 = 12 * 2;
-
 #[static_init::dynamic]
 pub static mut SCREEN: Screen = Screen::new();
 
 #[static_init::dynamic]
 pub static mut SCREEN_TOP: Screen = Screen::new();
-
-pub struct ScreenText {
-  coord: df::common::Coord<i32>,
-  data: ColoredText,
-  render: bool,
-}
-
-impl ScreenText {
-  pub fn new(content: String) -> Self {
-    Self {
-      coord: Default::default(),
-      data: ColoredText::new(content),
-      render: true,
-    }
-  }
-
-  pub fn by_coord(mut self, coord: df::common::Coord<i32>) -> Self {
-    self.coord = coord;
-    self
-  }
-
-  pub fn by_graphic(self, gps: usize) -> Self {
-    self.color_by_graphic(gps).coord_by_graphic(gps)
-  }
-
-  pub fn color_by_graphic(mut self, gps: usize) -> Self {
-    let color = df::graphic::deref_color(gps);
-    self.data = self.data.with_color(color);
-    self
-  }
-
-  pub fn coord_by_graphic(self, gps: usize) -> Self {
-    let mut coord = df::graphic::deref_coord(gps);
-    coord.x *= CANVAS_FONT_WIDTH;
-    coord.y *= CANVAS_FONT_HEIGHT;
-    self.by_coord(coord)
-  }
-
-  pub fn with_offset(mut self, offset_x: i32, offset_y: i32) -> Self {
-    self.coord.x += offset_x;
-    self.coord.y += offset_y;
-    self
-  }
-
-  pub fn with_sflag(mut self, sflag: u32) -> Self {
-    let flag = df::flags::ScreenTexPosFlag::from_bits_retain(sflag);
-
-    if flag.contains(df::flags::ScreenTexPosFlag::TOP_OF_TEXT) {
-      self.render = false;
-    }
-
-    if flag.contains(df::flags::ScreenTexPosFlag::BOTTOM_OF_TEXT) {
-      self.coord.y -= CANVAS_FONT_HEIGHT / 2
-    }
-
-    self
-  }
-
-  pub fn with_color(mut self, color: df::common::Color) -> Self {
-    self.data = self.data.with_color(color);
-    self
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ColoredText {
-  pub content: String,
-  pub color: df::common::Color,
-}
-
-impl ColoredText {
-  pub fn new(content: String) -> Self {
-    Self {
-      content,
-      color: df::common::Color::rgb(255, 255, 255),
-    }
-  }
-
-  pub fn with_color(mut self, color: df::common::Color) -> Self {
-    self.color = color;
-    self
-  }
-
-  fn key(&self) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    self.hash(&mut hasher);
-    hasher.finish()
-  }
-}
 
 #[derive(Default)]
 pub struct Screen {
@@ -138,8 +46,8 @@ impl Screen {
     }
 
     let canvas = Surface::new(
-      w * CANVAS_FONT_WIDTH as u32,
-      h * CANVAS_FONT_HEIGHT as u32,
+      w * constants::CANVAS_FONT_WIDTH as u32,
+      h * constants::CANVAS_FONT_HEIGHT as u32,
       PixelFormatEnum::RGBA32,
     )
     .unwrap();
@@ -147,8 +55,8 @@ impl Screen {
     mem::forget(canvas);
   }
 
-  pub fn add_text(&mut self, text: ScreenText) -> usize {
-    let ScreenText {
+  pub fn add_text(&mut self, text: text::ScreenText) -> usize {
+    let text::ScreenText {
       data: text,
       coord: df::common::Coord { x, y },
       render,
@@ -182,7 +90,7 @@ impl Screen {
       sdl::SDL_UpperBlit(surface_ptr, ptr::null(), canvas, rect.raw_mut());
     };
 
-    (width as f32 / CANVAS_FONT_WIDTH as f32).ceil() as usize
+    (width as f32 / constants::CANVAS_FONT_WIDTH as f32).ceil() as usize
   }
 
   pub fn clear(&mut self) {
@@ -211,8 +119,8 @@ impl Screen {
     let srcrect = Rect::new(
       0,
       0,
-      self.dimension.0 * CANVAS_FONT_WIDTH as u32,
-      self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
+      self.dimension.0 * constants::CANVAS_FONT_WIDTH as u32,
+      self.dimension.1 * constants::CANVAS_FONT_HEIGHT as u32,
     );
 
     let df::renderer::ScreenInfo {

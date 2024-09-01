@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::{
   df, encodings, font,
   global::{get_key_display, ENABLER, GPS},
-  screen::{ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
+  screen::{self, SCREEN_TOP},
 };
 
 #[static_init::dynamic]
@@ -375,7 +375,7 @@ impl MarkupTextBox {
     self.max_y = 0;
     self.current_width = width;
 
-    let width_in_pixels = width * CANVAS_FONT_WIDTH;
+    let width_in_pixels = width * screen::constants::CANVAS_FONT_WIDTH;
     let mut remain_width = width_in_pixels;
     let mut x_val = 0;
     let mut y_val = 0;
@@ -390,14 +390,14 @@ impl MarkupTextBox {
       if cur_word.flags.contains(MarkupWordFlag::BLANK_LINE) {
         remain_width = 0;
         x_val = 0;
-        y_val += CANVAS_FONT_HEIGHT;
+        y_val += screen::constants::CANVAS_FONT_HEIGHT;
         continue;
       }
 
       if cur_word.flags.contains(MarkupWordFlag::INDENT) {
         remain_width = width_in_pixels;
-        x_val = 4 * CANVAS_FONT_WIDTH;
-        y_val += CANVAS_FONT_HEIGHT;
+        x_val = 4 * screen::constants::CANVAS_FONT_WIDTH;
+        y_val += screen::constants::CANVAS_FONT_HEIGHT;
         continue;
       }
 
@@ -405,18 +405,18 @@ impl MarkupTextBox {
       if remain_width < word_width {
         remain_width = width_in_pixels;
         x_val = 0;
-        y_val += CANVAS_FONT_HEIGHT;
+        y_val += screen::constants::CANVAS_FONT_HEIGHT;
       }
 
       if let Some(next_word) = iter.peek() {
         if next_word.str.chars().count() == 1 {
           let next_char = next_word.str.chars().next().unwrap();
-          if x_val > 0 && remain_width <= (font::get_width(next_char) as i32 + CANVAS_FONT_WIDTH) {
+          if x_val > 0 && remain_width <= (font::get_width(next_char) as i32 + screen::constants::CANVAS_FONT_WIDTH) {
             match next_char {
               '.' | ',' | '?' | '!' => {
                 remain_width = width_in_pixels;
                 x_val = 0;
-                y_val += CANVAS_FONT_HEIGHT;
+                y_val += screen::constants::CANVAS_FONT_HEIGHT;
               }
               _ => {}
             }
@@ -428,15 +428,15 @@ impl MarkupTextBox {
         let cur_char = cur_word.str.chars().next().unwrap();
         match cur_char {
           '.' | ',' | '?' | '!' => {
-            cur_word.x = x_val - CANVAS_FONT_WIDTH;
+            cur_word.x = x_val - screen::constants::CANVAS_FONT_WIDTH;
             cur_word.y = y_val;
 
             if self.max_y < y_val {
               self.max_y = y_val;
             }
 
-            remain_width -= CANVAS_FONT_WIDTH;
-            x_val += CANVAS_FONT_WIDTH;
+            remain_width -= screen::constants::CANVAS_FONT_WIDTH;
+            x_val += screen::constants::CANVAS_FONT_WIDTH;
             continue;
           }
           _ => {}
@@ -450,16 +450,16 @@ impl MarkupTextBox {
         self.max_y = y_val;
       }
 
-      remain_width -= word_width + CANVAS_FONT_WIDTH;
-      x_val += word_width + CANVAS_FONT_WIDTH;
+      remain_width -= word_width + screen::constants::CANVAS_FONT_WIDTH;
+      x_val += word_width + screen::constants::CANVAS_FONT_WIDTH;
 
       if let Some(next_word) = iter.peek() {
         if cur_word.str.chars().count() > 0 && next_word.str.chars().count() > 0 {
           let cur_last_char = cur_word.str.chars().last().unwrap();
           let next_first_char = next_word.str.chars().next().unwrap();
           if encodings::cjk::is_cjk(cur_last_char) && encodings::cjk::is_cjk(next_first_char) {
-            remain_width += CANVAS_FONT_WIDTH;
-            x_val -= CANVAS_FONT_WIDTH;
+            remain_width += screen::constants::CANVAS_FONT_WIDTH;
+            x_val -= screen::constants::CANVAS_FONT_WIDTH;
           }
         }
       }
@@ -513,7 +513,7 @@ impl Markup {
     if let Some(text) = self.items.get_mut(&address) {
       text.set_width(current_width);
 
-      return (text.max_y as f32 / CANVAS_FONT_HEIGHT as f32).ceil() as i32;
+      return (text.max_y as f32 / screen::constants::CANVAS_FONT_HEIGHT as f32).ceil() as i32;
     }
 
     -1
@@ -522,7 +522,7 @@ impl Markup {
   pub fn render(&self, gps: usize, address: usize) {
     if let Some(text) = self.items.get(&address) {
       for word in &text.word {
-        let text = ScreenText::new(word.str.clone()).by_graphic(gps);
+        let text = screen::text::ScreenText::new(word.str.clone()).by_graphic(gps);
         SCREEN_TOP.write().add_text(text.with_offset(word.x, word.y).with_color(word.color.clone()));
       }
     }

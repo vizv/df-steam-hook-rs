@@ -6,7 +6,7 @@ use crate::config::CONFIG;
 use crate::dictionary::DICTIONARY;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
-use crate::screen::{ScreenText, SCREEN, SCREEN_TOP};
+use crate::screen::{self, SCREEN, SCREEN_TOP};
 use crate::{df, utils};
 
 use r#macro::hook;
@@ -69,7 +69,7 @@ fn translate(string: usize) -> String {
 fn addst(gps: usize, string: usize, just: u8, space: i32) {
   let content = translate(string);
 
-  let text = ScreenText::new(content).by_graphic(gps);
+  let text = screen::text::ScreenText::new(content).by_graphic(gps);
   let width = SCREEN.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
@@ -91,7 +91,7 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
     }
   }
 
-  let text = ScreenText::new(content).by_graphic(gps);
+  let text = screen::text::ScreenText::new(content).by_graphic(gps);
   let width = SCREEN_TOP.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
@@ -103,7 +103,7 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
   let content = translate(string);
 
-  let text = ScreenText::new(content).by_graphic(gps).with_sflag(sflag);
+  let text = screen::text::ScreenText::new(content).by_graphic(gps).with_sflag(sflag);
   let width = SCREEN.write().add_text(text);
   let_cxx_string!(dummy = " ".repeat(width));
   let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
