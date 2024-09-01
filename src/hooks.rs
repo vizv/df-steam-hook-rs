@@ -84,7 +84,7 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 
   let help = df::game::GameMainInterfaceHelp::deref(GAME.to_owned());
   for text in &help.text {
-    if let Some(word) = text.word.first::<usize>() {
+    if let Some(word) = text.word.first_address() {
       if string == word.to_owned() {
         MARKUP.write().render(gps, text.ptr());
         return;
@@ -174,12 +174,9 @@ fn mtb_set_width(text: usize, current_width: i32) {
   let max_y = MARKUP.write().layout(text, current_width);
 
   let mut text = df::game::MarkupTextBox::at_mut(text);
-  if let Some(word) = text.word.first::<usize>() {
-    let word = word.to_owned();
-    unsafe {
-      *((word + 0x28) as *mut i32) = 0;
-      *((word + 0x2c) as *mut i32) = 0;
-    }
+  if let Some(word) = text.word.first_mut::<df::game::MarkupTextWord>() {
+    word.px = 0;
+    word.py = 0;
   }
 
   text.current_width = 0;

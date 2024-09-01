@@ -2,6 +2,19 @@ use super::{common, offsets};
 
 #[derive(Debug)]
 #[repr(C)]
+pub struct MarkupTextWord {
+  pub str: [u8; 32], // TODO: fix this for Windows
+  pub red: u8,
+  pub green: u8,
+  pub blue: u8,
+  pub link_index: i32,
+  pub px: i32,
+  pub py: i32,
+  pub flags: u32,
+}
+
+#[derive(Debug)]
+#[repr(C)]
 pub struct MarkupTextBox {
   pub word: common::Vector,
   pub link: common::Vector,
