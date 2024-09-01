@@ -169,17 +169,25 @@ fn mtb_process_string_to_lines(text: usize, src: usize) {
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "018b7340"))]
-fn mtb_set_width(text: usize, current_width: i32) {
-  let max_y = MARKUP.write().layout(text, current_width);
+fn mtb_set_width(text_address: usize, current_width: i32) {
+  let max_y = MARKUP.write().layout(text_address, current_width);
 
-  let mut text = df::game::MarkupTextBox::at_mut(text);
-  if let Some(word) = text.word.first_mut::<df::game::MarkupTextWord>() {
-    word.px = 0;
-    word.py = 0;
+  let help = df::game::GameMainInterfaceHelp::borrow_mut_from(GAME.to_owned());
+  for text in &mut help.text {
+    if text as *const df::game::MarkupTextBox as usize == text_address {
+      if let Some(word) = text.word.first_mut::<df::game::MarkupTextWord>() {
+        word.px = 0;
+        word.py = 0;
+      }
+
+      text.current_width = 0;
+      text.max_y = max_y;
+
+      return;
+    }
   }
 
-  text.current_width = 0;
-  text.max_y = max_y;
+  unsafe { original!(text_address, current_width) };
 }
 
 #[cfg_attr(target_os = "linux", hook(offset = "01193fe0"))]
