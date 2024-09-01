@@ -22,7 +22,7 @@ pub static mut SCREEN_TOP: Screen = Screen::new();
 
 #[derive(Default)]
 pub struct Screen {
-  dimension: (u32, u32),
+  dimension: df::common::Dimension<i32>,
   canvas_ptr: usize,
   // cache: hash(data) => (surface_ptr, width)
   prev: HashMap<u64, (usize, u32)>,
@@ -39,9 +39,8 @@ impl Screen {
     }
   }
 
-  pub fn resize(&mut self, w: u32, h: u32) {
-    self.dimension.0 = w;
-    self.dimension.1 = h;
+  pub fn resize(&mut self, x: i32, y: i32) {
+    self.dimension = df::common::Dimension { x, y };
 
     if self.canvas_ptr != 0 {
       let canvas = unsafe { Surface::from_ll(self.canvas_ptr as *mut sdl::SDL_Surface) };
@@ -49,8 +48,8 @@ impl Screen {
     }
 
     let canvas = Surface::new(
-      w * CANVAS_FONT_WIDTH as u32,
-      h * CANVAS_FONT_HEIGHT as u32,
+      (x * CANVAS_FONT_WIDTH) as u32,
+      (y * CANVAS_FONT_HEIGHT) as u32,
       PixelFormatEnum::RGBA32,
     )
     .unwrap();
@@ -127,8 +126,8 @@ impl Screen {
     let srcrect = Rect::new(
       0,
       0,
-      self.dimension.0 * CANVAS_FONT_WIDTH as u32,
-      self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
+      (self.dimension.x * CANVAS_FONT_WIDTH) as u32,
+      (self.dimension.y * CANVAS_FONT_HEIGHT) as u32,
     );
 
     let df::renderer::ScreenInfo {
@@ -140,8 +139,8 @@ impl Screen {
     let dstrect = Rect::new(
       origin_x as i32,
       origin_y as i32,
-      self.dimension.0 * dispx_z as u32,
-      self.dimension.1 * dispy_z as u32,
+      (self.dimension.x * dispx_z) as u32,
+      (self.dimension.y * dispy_z) as u32,
     );
 
     unsafe {

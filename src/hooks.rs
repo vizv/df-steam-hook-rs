@@ -123,10 +123,10 @@ fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn gps_allocate(renderer: usize, w: u32, h: u32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
-  unsafe { original!(renderer, w, h, screen_x, screen_y, tile_dim_x, tile_dim_y) };
-  SCREEN.write().resize(w, h);
-  SCREEN_TOP.write().resize(w, h);
+fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
+  unsafe { original!(renderer, x, y, screen_x, screen_y, tile_dim_x, tile_dim_y) };
+  SCREEN.write().resize(x, y);
+  SCREEN_TOP.write().resize(x, y);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
