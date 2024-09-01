@@ -1,18 +1,18 @@
 use crate::df;
 
-use super::{colored_text, constants};
+use super::{constants, data};
 
-pub struct ScreenText {
+pub struct Text {
   pub coord: df::common::Coord<i32>,
-  pub data: colored_text::ColoredText,
+  pub data: data::Data,
   pub render: bool,
 }
 
-impl ScreenText {
+impl Text {
   pub fn new(content: String) -> Self {
     Self {
       coord: Default::default(),
-      data: colored_text::ColoredText::new(content),
+      data: data::Data::new(content),
       render: true,
     }
   }

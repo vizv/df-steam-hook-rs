@@ -3,15 +3,15 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use crate::df;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ColoredText {
-  pub content: String,
+pub struct Data {
+  pub str: String,
   pub color: df::common::Color,
 }
 
-impl ColoredText {
-  pub fn new(content: String) -> Self {
+impl Data {
+  pub fn new(str: String) -> Self {
     Self {
-      content,
+      str,
       color: df::common::Color::rgb(255, 255, 255),
     }
   }

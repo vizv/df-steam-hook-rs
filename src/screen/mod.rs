@@ -1,15 +1,18 @@
-pub mod colored_text;
 pub mod constants;
+pub mod data;
 pub mod text;
 
-use std::{collections::HashMap, mem, ptr};
-
-use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
+pub use constants::CANVAS_FONT_HEIGHT;
+pub use constants::CANVAS_FONT_WIDTH;
+use data::Data;
+pub use text::Text;
 
 use crate::{
   df,
   font::{CJK_FONT_SIZE, FONT},
 };
+use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
+use std::{collections::HashMap, mem, ptr};
 
 #[static_init::dynamic]
 pub static mut SCREEN: Screen = Screen::new();
@@ -21,7 +24,7 @@ pub static mut SCREEN_TOP: Screen = Screen::new();
 pub struct Screen {
   dimension: (u32, u32),
   canvas_ptr: usize,
-  // cache: hash(colored_text) => (surface_ptr, width)
+  // cache: hash(data) => (surface_ptr, width)
   prev: HashMap<u64, (usize, u32)>,
   next: HashMap<u64, (usize, u32)>,
 }
@@ -46,8 +49,8 @@ impl Screen {
     }
 
     let canvas = Surface::new(
-      w * constants::CANVAS_FONT_WIDTH as u32,
-      h * constants::CANVAS_FONT_HEIGHT as u32,
+      w * CANVAS_FONT_WIDTH as u32,
+      h * CANVAS_FONT_HEIGHT as u32,
       PixelFormatEnum::RGBA32,
     )
     .unwrap();
@@ -55,9 +58,9 @@ impl Screen {
     mem::forget(canvas);
   }
 
-  pub fn add_text(&mut self, text: text::ScreenText) -> usize {
-    let text::ScreenText {
-      data: text,
+  pub fn add_text(&mut self, text: Text) -> usize {
+    let Text {
+      data,
       coord: df::common::Coord { x, y },
       render,
     } = text;
@@ -67,16 +70,21 @@ impl Screen {
     }
 
     // render text or get from cache
-    let key = text.key();
+    let key = data.key();
     let (surface_ptr, width) = match self.prev.get(&key) {
       Some((ptr, width)) => (ptr.to_owned() as *mut sdl::SDL_Surface, width.to_owned()),
       None => {
+        let Data {
+          str,
+          color: df::common::Color { r, g, b },
+        } = data;
+
         let mut font = FONT.write();
-        let (ptr, width) = font.render(text.content);
+        let (ptr, width) = font.render(str);
         let ptr = ptr as *mut sdl::SDL_Surface;
         mem::drop(font);
 
-        unsafe { sdl::SDL_SetSurfaceColorMod(ptr, text.color.r, text.color.g, text.color.b) };
+        unsafe { sdl::SDL_SetSurfaceColorMod(ptr, r, g, b) };
 
         (ptr, width)
       }
@@ -90,7 +98,7 @@ impl Screen {
       sdl::SDL_UpperBlit(surface_ptr, ptr::null(), canvas, rect.raw_mut());
     };
 
-    (width as f32 / constants::CANVAS_FONT_WIDTH as f32).ceil() as usize
+    (width as f32 / CANVAS_FONT_WIDTH as f32).ceil() as usize
   }
 
   pub fn clear(&mut self) {
@@ -119,8 +127,8 @@ impl Screen {
     let srcrect = Rect::new(
       0,
       0,
-      self.dimension.0 * constants::CANVAS_FONT_WIDTH as u32,
-      self.dimension.1 * constants::CANVAS_FONT_HEIGHT as u32,
+      self.dimension.0 * CANVAS_FONT_WIDTH as u32,
+      self.dimension.1 * CANVAS_FONT_HEIGHT as u32,
     );
 
     let df::renderer::ScreenInfo {
