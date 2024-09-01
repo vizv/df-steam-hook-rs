@@ -4,7 +4,6 @@
 extern crate serde_derive;
 extern crate toml;
 
-mod cjk;
 mod config;
 mod constants;
 mod df;

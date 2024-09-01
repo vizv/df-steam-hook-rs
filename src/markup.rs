@@ -3,8 +3,7 @@ use cxx::let_cxx_string;
 use std::collections::HashMap;
 
 use crate::{
-  cjk, df,
-  font::FONT,
+  df, encodings, font,
   global::{get_key_display, ENABLER, GPS},
   screen::{ScreenText, CANVAS_FONT_HEIGHT, CANVAS_FONT_WIDTH, SCREEN_TOP},
 };
@@ -316,7 +315,7 @@ impl MarkupTextBox {
         let ch = if char_token == '\0' { chars[i] } else { char_token };
 
         // flush if the next character is CJK character
-        if cjk::is_cjk(ch) && !cjk::is_cjk_punctuation(ch) {
+        if encodings::cjk::is_cjk(ch) && !encodings::cjk::is_cjk_punctuation(ch) {
           text.insert(&mut str, link_index, color);
         }
 
@@ -324,7 +323,7 @@ impl MarkupTextBox {
           // flush the previous string if last character is CJK character
           if str.len() > 0 {
             let last_ch = str.chars().last().unwrap();
-            if cjk::is_cjk(last_ch) && !cjk::is_cjk_punctuation(ch) {
+            if encodings::cjk::is_cjk(last_ch) && !encodings::cjk::is_cjk_punctuation(ch) {
               text.insert(&mut str, link_index, color);
             }
           }
@@ -402,7 +401,7 @@ impl MarkupTextBox {
         continue;
       }
 
-      let word_width = cur_word.str.chars().map(|ch| FONT.write().get_width(ch) as i32).sum();
+      let word_width = cur_word.str.chars().map(|ch| font::get_width(ch) as i32).sum();
       if remain_width < word_width {
         remain_width = width_in_pixels;
         x_val = 0;
@@ -412,7 +411,7 @@ impl MarkupTextBox {
       if let Some(next_word) = iter.peek() {
         if next_word.str.chars().count() == 1 {
           let next_char = next_word.str.chars().next().unwrap();
-          if x_val > 0 && remain_width <= (FONT.write().get_width(next_char) as i32 + CANVAS_FONT_WIDTH) {
+          if x_val > 0 && remain_width <= (font::get_width(next_char) as i32 + CANVAS_FONT_WIDTH) {
             match next_char {
               '.' | ',' | '?' | '!' => {
                 remain_width = width_in_pixels;
@@ -458,7 +457,7 @@ impl MarkupTextBox {
         if cur_word.str.chars().count() > 0 && next_word.str.chars().count() > 0 {
           let cur_last_char = cur_word.str.chars().last().unwrap();
           let next_first_char = next_word.str.chars().next().unwrap();
-          if FONT.write().is_cjk(cur_last_char) && FONT.write().is_cjk(next_first_char) {
+          if encodings::cjk::is_cjk(cur_last_char) && encodings::cjk::is_cjk(next_first_char) {
             remain_width += CANVAS_FONT_WIDTH;
             x_val -= CANVAS_FONT_WIDTH;
           }

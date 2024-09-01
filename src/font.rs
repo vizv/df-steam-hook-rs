@@ -38,22 +38,6 @@ impl Font {
     }
   }
 
-  pub fn get_width(&mut self, ch: char) -> u32 {
-    if self.is_curses(ch) {
-      CURSES_FONT_WIDTH
-    } else {
-      CJK_FONT_SIZE
-    }
-  }
-
-  pub fn is_cjk(&mut self, ch: char) -> bool {
-    !self.is_curses(ch)
-  }
-
-  pub fn is_curses(&mut self, ch: char) -> bool {
-    self.get(ch).1
-  }
-
   pub fn get(&mut self, ch: char) -> (usize, bool) {
     if let Some(&code) = encodings::cp437::UTF8_CHAR_TO_CP437.get(&ch) {
       return (df::enabler::deref_curses_surface(ENABLER.to_owned(), code), true);
@@ -93,7 +77,6 @@ impl Font {
     }
   }
 
-  // FIXME: also returns the real width
   pub fn render(&mut self, string: String) -> (usize, u32) {
     let width = CJK_FONT_SIZE * string.chars().count() as u32;
     let height = CJK_FONT_SIZE;
@@ -121,5 +104,13 @@ impl Font {
     file.read_to_end(&mut data)?;
 
     fontdue::Font::from_bytes(data, fontdue::FontSettings::default()).map_err(|err| anyhow::anyhow!(err))
+  }
+}
+
+pub fn get_width(ch: char) -> u32 {
+  if encodings::cjk::is_cjk(ch) {
+    CJK_FONT_SIZE
+  } else {
+    CURSES_FONT_WIDTH
   }
 }
