@@ -5,9 +5,8 @@ use std::io::Read;
 use std::{mem, ptr};
 
 use crate::config::CONFIG;
-use crate::cp437::UTF8_CHAR_TO_CP437;
 use crate::global::ENABLER;
-use crate::{raw, utils};
+use crate::{df, encodings, utils};
 
 pub const CURSES_FONT_WIDTH: u32 = 16;
 pub const CJK_FONT_SIZE: u32 = 24;
@@ -39,13 +38,9 @@ impl Font {
     }
   }
 
-  fn get(&mut self, ch: char) -> (usize, bool) {
-    let enabler = ENABLER.to_owned();
-    let curses_surface_base =
-      raw::deref::<usize>(enabler + CONFIG.offset.as_ref().unwrap().enabler_offset_curses_glyph_texture.unwrap());
-
-    if let Some(&code) = UTF8_CHAR_TO_CP437.get(&ch) {
-      return (raw::deref::<usize>(curses_surface_base + (code as usize * 8)), true);
+  pub fn get(&mut self, ch: char) -> (usize, bool) {
+    if let Some(&code) = encodings::cp437::UTF8_CHAR_TO_CP437.get(&ch) {
+      return (df::enabler::deref_curses_surface(ENABLER.to_owned(), code), true);
     };
 
     if !self.cache.contains_key(&ch) {
@@ -54,7 +49,7 @@ impl Font {
         let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
         surface.with_lock_mut(|buffer| {
           let dx = metrics.xmin;
-          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 3); // Note: only for the "NotoSansMonoCJKsc-Bold" font
+          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 4); // Note: only for the "NotoSansMonoCJKsc-Bold" font
           let dy = if dy < 0 { 0 } else { dy };
           for y in 0..metrics.height {
             for x in 0..metrics.width {
@@ -78,11 +73,10 @@ impl Font {
       return (surface_ptr.to_owned(), false);
     } else {
       // fallback to curses space glyph
-      return (raw::deref::<usize>(curses_surface_base + (32 * 8)), true);
+      return (df::enabler::deref_curses_surface(ENABLER.to_owned(), ' ' as u8), true);
     }
   }
 
-  // FIXME: also returns the real width
   pub fn render(&mut self, string: String) -> (usize, u32) {
     let width = CJK_FONT_SIZE * string.chars().count() as u32;
     let height = CJK_FONT_SIZE;
@@ -110,5 +104,13 @@ impl Font {
     file.read_to_end(&mut data)?;
 
     fontdue::Font::from_bytes(data, fontdue::FontSettings::default()).map_err(|err| anyhow::anyhow!(err))
+  }
+}
+
+pub fn get_width(ch: char) -> u32 {
+  if encodings::cjk::is_cjk(ch) {
+    CJK_FONT_SIZE
+  } else {
+    CURSES_FONT_WIDTH
   }
 }

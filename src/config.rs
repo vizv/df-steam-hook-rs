@@ -57,10 +57,8 @@ pub struct OffsetsMetadata {
 #[derive(Deserialize)]
 pub struct OffsetsValues {
   pub enabler: Option<usize>,
-  pub enabler_offset_curses_glyph_texture: Option<usize>,
+  pub game: Option<usize>,
   pub gps: Option<usize>,
-  pub gps_offset_dimension: Option<usize>,
-  pub renderer_offset_screen_info: Option<usize>,
   pub addst: Option<usize>,
   pub addst_top: Option<usize>,
   pub addst_flag: Option<usize>,
@@ -68,6 +66,10 @@ pub struct OffsetsValues {
   pub gps_allocate: Option<usize>,
   pub update_all: Option<usize>,
   pub update_tile: Option<usize>,
+  pub get_key_display: Option<usize>,
+  pub mtb_process_string_to_lines: Option<usize>,
+  pub mtb_set_width: Option<usize>,
+  pub render_help_dialog: Option<usize>,
 }
 
 #[allow(dead_code)]
@@ -81,6 +83,7 @@ pub struct SymbolsValues {
   pub gps_allocate: Option<Vec<String>>,
   pub update_all: Option<Vec<String>>,
   pub update_tile: Option<Vec<String>>,
+  pub get_key_display: Option<Vec<String>>,
 }
 
 impl Config {
