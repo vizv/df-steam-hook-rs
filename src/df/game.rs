@@ -45,7 +45,7 @@ pub struct GameMainInterfaceHelp {
 }
 
 impl GameMainInterfaceHelp {
-  pub fn deref(addr: usize) -> &'static Self {
+  pub fn borrow_from(addr: usize) -> &'static Self {
     unsafe { &*((addr + offsets::GAME_MAIN_INTERFACE_HELP) as *const GameMainInterfaceHelp) }
   }
 }

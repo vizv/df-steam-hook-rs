@@ -82,7 +82,7 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   let content = translate(string);
 
-  let help = df::game::GameMainInterfaceHelp::deref(GAME.to_owned());
+  let help = df::game::GameMainInterfaceHelp::borrow_from(GAME.to_owned());
   for text in &help.text {
     if let Some(word) = text.word.first_address() {
       if string == word.to_owned() {

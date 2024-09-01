@@ -42,19 +42,6 @@ pub struct Vector {
 }
 
 impl Vector {
-  pub fn at(addr: usize) -> Self {
-    utils::deref(addr)
-  }
-
-  // pub fn first_address(&self) -> Option<usize> {
-  //   if self.begin == 0 || self.begin == self.end {
-  //     None
-  //   } else {
-  //     Some(self.begin)
-  //     // Some(unsafe { *(self.begin as *const usize) })
-  //   }
-  // }
-
   pub fn first_address(&self) -> Option<usize> {
     if self.begin == 0 || self.begin == self.end {
       None
