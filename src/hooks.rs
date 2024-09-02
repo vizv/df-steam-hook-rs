@@ -6,7 +6,7 @@ use crate::config::CONFIG;
 use crate::dictionary::DICTIONARY;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
-use crate::screen;
+use crate::screen::{self, SCREEN};
 use crate::{df, utils};
 
 use r#macro::hook;
@@ -22,6 +22,8 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_mtb_process_string_to_lines()?;
   attach_mtb_set_width()?;
   attach_render_help_dialog()?;
+  attach_draw_horizontal_nineslice()?;
+  attach_draw_nineslice()?;
 
   Ok(())
 }
@@ -37,6 +39,8 @@ pub unsafe fn enable_all() -> Result<()> {
   // always enable mtb_process_string_to_lines:
   enable_mtb_set_width()?;
   enable_render_help_dialog()?;
+  enable_draw_horizontal_nineslice()?;
+  enable_draw_nineslice()?;
 
   Ok(())
 }
@@ -52,6 +56,8 @@ pub unsafe fn disable_all() -> Result<()> {
   // always enable mtb_process_string_to_lines:
   disable_mtb_set_width()?;
   disable_render_help_dialog()?;
+  disable_draw_horizontal_nineslice()?;
+  disable_draw_nineslice()?;
 
   Ok(())
 }
@@ -130,6 +136,26 @@ fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
+fn draw_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
+  unsafe { original!(texpos, sy, sx, ey, ex, flag) };
+  if flag & 1 == 1 {
+    let cover = screen::Cover::new(sx, sy, ex, ey);
+    SCREEN.write().add_cover(cover);
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn draw_horizontal_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
+  unsafe { original!(texpos, sy, sx, ey, ex, flag) };
+  if flag & 1 == 1 {
+    let cover = screen::Cover::new(sx, sy, ex, ey);
+    SCREEN.write().add_cover(cover);
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
 fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
   // graphicst::resize is inlined in Windows, hook gps_allocate instead
   unsafe { original!(renderer, x, y, screen_x, screen_y, tile_dim_x, tile_dim_y) };
@@ -141,11 +167,11 @@ fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, t
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
-  screen::SCREEN_TOP.write().render(renderer);
 
-  // always clear the buffer layer after a full-render
-  screen::SCREEN.write().clear();
-  screen::SCREEN_TOP.write().clear();
+  if df::graphic::top_in_use(GPS.to_owned()) {
+    screen::SCREEN_TOP.write().render(renderer);
+    screen::SCREEN_TOP.write().clear();
+  }
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -160,6 +186,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
   }
 
   screen::SCREEN.write().render(renderer);
+  screen::SCREEN.write().clear();
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]

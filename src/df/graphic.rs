@@ -43,3 +43,7 @@ pub fn deref_color(addr: usize) -> common::Color {
 pub fn get_uccolor(addr: usize, color: enums::CursesColor) -> common::Color {
   common::Color::at(addr + offsets::GRAPHIC_UCCOLOR + 3 * color as usize)
 }
+
+pub fn top_in_use(addr: usize) -> bool {
+  utils::deref(addr + offsets::GRAPHIC_TOP_IN_USE)
+}
