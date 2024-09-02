@@ -1,9 +1,11 @@
 pub mod constants;
+pub mod cover;
 pub mod data;
 pub mod text;
 
 pub use constants::CANVAS_FONT_HEIGHT;
 pub use constants::CANVAS_FONT_WIDTH;
+pub use cover::Cover;
 use data::Data;
 pub use text::Text;
 
@@ -115,13 +117,21 @@ impl Screen {
     self.prev = mem::take(&mut self.next);
   }
 
+  pub fn add_cover(&mut self, cover: Cover) {
+    let Cover {
+      coord: df::common::Coord { x, y },
+      dimension: df::common::Dimension { x: w, y: h },
+    } = cover;
+
+    let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+    let cover_rect = Rect::new(x, y, w, h);
+    unsafe { sdl::SDL_FillRect(canvas, cover_rect.raw(), 0) };
+  }
+
   pub fn render(&mut self, renderer: usize) {
     if self.canvas_ptr == 0 {
       return;
     }
-
-    let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-    let sdl_renderer = df::renderer::deref_sdl_renderer(renderer);
 
     let srcrect = Rect::new(
       0,
@@ -144,6 +154,8 @@ impl Screen {
     );
 
     unsafe {
+      let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
+      let sdl_renderer = df::renderer::deref_sdl_renderer(renderer);
       let texture = sdl::SDL_CreateTextureFromSurface(sdl_renderer, canvas);
       sdl::SDL_SetTextureScaleMode(texture, sdl::SDL_ScaleMode::SDL_ScaleModeLinear);
       sdl::SDL_RenderCopy(sdl_renderer, texture, srcrect.raw(), dstrect.raw());
