@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+use data::MEGA;
 use matcher::match_skill_level;
 
 use crate::dictionary::DICTIONARY;
@@ -29,15 +30,15 @@ pub struct Translator {
 
 impl Translator {
   pub fn translate(&mut self, context: &'static str, string: &String) -> &String {
+    MEGA.write().load();
+
     let key = StringWithContext { context, string }.key();
     if !self.cache.contains_key(&key) {
       let content = if let Some(translated) = matcher::match_workshop_string(string) {
         translated
       } else if let Some(translated) = match_skill_level(string) {
         translated
-      } else if let Some(translated) = data::ITEMS.nouns.get(string) {
-        translated.to_owned()
-      } else if let Some(translated) = data::MATERIALS.nouns.get(string) {
+      } else if let Some(translated) = data::MEGA.read().get(&string.to_lowercase()) {
         translated.to_owned()
       } else if let Some(translated) = DICTIONARY.get(string) {
         translated.to_owned()
