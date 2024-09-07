@@ -522,7 +522,7 @@ impl Markup {
   pub fn render(&self, gps: usize, address: usize) {
     if let Some(text) = self.items.get(&address) {
       for word in &text.word {
-        let text = screen::Text::new(word.str.clone()).by_graphic(gps);
+        let text = screen::Text::new(&word.str).by_graphic(gps);
         screen::SCREEN_TOP.write().add_text(text.with_offset(word.x, word.y).with_color(word.color.clone()));
       }
     }

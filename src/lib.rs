@@ -14,6 +14,7 @@ mod global;
 mod hooks;
 mod markup;
 mod screen;
+mod translator;
 mod utils;
 mod watchdog;
 
