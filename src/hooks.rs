@@ -3,10 +3,10 @@ use cxx::let_cxx_string;
 use retour::static_detour;
 
 use crate::config::CONFIG;
-use crate::dictionary::DICTIONARY;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{self, SCREEN};
+use crate::translator::TRANSLATOR;
 use crate::{df, utils};
 
 use r#macro::hook;
@@ -62,20 +62,12 @@ pub unsafe fn disable_all() -> Result<()> {
   Ok(())
 }
 
-fn translate(string: usize) -> String {
-  let mut content = df::utils::deref_string(string);
-  if let Some(translated) = DICTIONARY.get(&content) {
-    content = translated.to_owned();
-  }
-  content
-}
-
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn addst(gps: usize, string: usize, just: u8, space: i32) {
-  let content = translate(string);
+fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
+  let string = df::utils::deref_string(string_address);
 
-  let text = screen::Text::new(content).by_graphic(gps);
+  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
   let width = screen::SCREEN.write().add_text(text);
 
   let_cxx_string!(dummy = " ".repeat(width));
@@ -85,8 +77,8 @@ fn addst(gps: usize, string: usize, just: u8, space: i32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
-  let content = translate(string);
+fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
+  let string = df::utils::deref_string(string_address);
 
   // in order to get the correct coord for help markup text,
   // we need to render it here and skip the content from original text.
@@ -94,14 +86,14 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
   for text in &help.text {
     if let Some(word) = text.word.first_address() {
       // if we're rendering a help text - rendering its first word
-      if string == word.to_owned() {
+      if string_address == word.to_owned() {
         MARKUP.write().render(gps, text.ptr());
         return;
       }
     }
   }
 
-  let text = screen::Text::new(content).by_graphic(gps);
+  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
   let_cxx_string!(dummy = " ".repeat(width));
@@ -111,10 +103,10 @@ fn addst_top(gps: usize, string: usize, just: u8, space: i32) {
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn addst_flag(gps: usize, string: usize, just: u8, space: i32, sflag: u32) {
-  let content = translate(string);
+fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
+  let string = df::utils::deref_string(string_address);
 
-  let text = screen::Text::new(content).by_graphic(gps).with_sflag(sflag);
+  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps).with_sflag(sflag);
   let width = screen::SCREEN.write().add_text(text);
 
   let_cxx_string!(dummy = " ".repeat(width));
@@ -191,10 +183,10 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
-fn mtb_process_string_to_lines(text: usize, src: usize) {
-  let content = translate(src);
+fn mtb_process_string_to_lines(text: usize, string_address: usize) {
+  let string = df::utils::deref_string(string_address);
 
-  unsafe { original!(text, src) };
+  unsafe { original!(text, string_address) };
 
   // TODO: may need regexp for some scenarios like world generation status (0x22fa459)
   // TODO: log unknown text (during world generation)
@@ -202,7 +194,7 @@ fn mtb_process_string_to_lines(text: usize, src: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  MARKUP.write().add(text, &content);
+  MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string));
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]

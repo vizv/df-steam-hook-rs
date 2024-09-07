@@ -9,10 +9,10 @@ pub struct Text {
 }
 
 impl Text {
-  pub fn new(content: String) -> Self {
+  pub fn new(content: &String) -> Self {
     Self {
       coord: Default::default(),
-      data: data::Data::new(content),
+      data: data::Data::new(content.to_owned()),
       render: true,
     }
   }
