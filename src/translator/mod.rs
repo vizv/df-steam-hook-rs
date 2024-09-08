@@ -34,7 +34,9 @@ impl Translator {
 
     let key = StringWithContext { context, string }.key();
     if !self.cache.contains_key(&key) {
-      let content = if let Some(translated) = matcher::match_workshop_string(string) {
+      let content = if let Some(translated) = data::HELP.get(string) {
+        translated.to_owned()
+      } else if let Some(translated) = matcher::match_workshop_string(string) {
         translated
       } else if let Some(translated) = match_skill_level(string) {
         translated
