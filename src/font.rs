@@ -1,6 +1,5 @@
 use anyhow::Result;
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, surface::Surface, sys as sdl};
-use std::cmp::min;
 use std::collections::HashMap;
 use std::io::Read;
 use std::{mem, ptr};
@@ -11,6 +10,7 @@ use crate::{df, encodings, utils};
 
 pub const CURSES_FONT_WIDTH: u32 = 16;
 pub const CJK_FONT_SIZE: u32 = 24;
+pub const BUF_SIZE: isize = (CJK_FONT_SIZE * CJK_FONT_SIZE) as isize;
 
 #[static_init::dynamic]
 pub static mut FONT: Font = Font::new(&CONFIG.settings.font);
@@ -50,14 +50,18 @@ impl Font {
         let mut surface = Surface::new(CJK_FONT_SIZE, CJK_FONT_SIZE, PixelFormatEnum::RGBA32).unwrap();
         surface.with_lock_mut(|buffer| {
           let dx = metrics.xmin;
-          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 4); // Note: only for the "NotoSansMonoCJKsc-Bold" font
+          let dy = (CJK_FONT_SIZE as i32 - metrics.height as i32) - (metrics.ymin + 3); // Note: only for the "NotoSansMonoCJKsc-Bold" font
           let dy = if dy < 0 { 0 } else { dy };
-          let width = min(metrics.width, CJK_FONT_SIZE as usize);
-          let height = min(metrics.height, CJK_FONT_SIZE as usize);
-          for y in 0..height {
-            for x in 0..width {
+          for y in 0..metrics.height {
+            for x in 0..metrics.width {
               let alpha = (bitmap[y * metrics.width + x] as u16 * 255 / 255) as u8;
-              let offset = ((y as i32 + dy) * CJK_FONT_SIZE as i32 + x as i32 + dx) as usize;
+
+              let offset = ((y as i32 + dy) * CJK_FONT_SIZE as i32 + x as i32 + dx) as isize;
+              if offset < 0 || offset >= BUF_SIZE {
+                continue;
+              }
+              let offset = offset as usize;
+
               buffer[offset * 4 + 0] = 255;
               buffer[offset * 4 + 1] = 255;
               buffer[offset * 4 + 2] = 255;
