@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ops::Deref};
 
-use super::{ITEMS, MATERIALS, MATERIALS_TEMPLATES, SKILL_LEVELS, SKILL_NAMES};
+use super::{ITEMS, MATERIALS, MATERIALS_TEMPLATES, PLANTS, SKILL_LEVELS, SKILL_NAMES};
 
 #[static_init::dynamic]
 pub static mut MEGA: MegaDictionary = Default::default();
@@ -18,6 +18,7 @@ impl MegaDictionary {
     }
 
     let dicts = vec![
+      &PLANTS.nouns,
       &ITEMS.adjectives,
       &ITEMS.nouns,
       &MATERIALS_TEMPLATES.adjectives,
