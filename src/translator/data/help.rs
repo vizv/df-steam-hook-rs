@@ -16,7 +16,7 @@ struct HelpText {
 
 #[static_init::dynamic]
 pub static HELP: HashMap<String, String> = {
-  let mut help: HashMap<String, String> = Default::default();
+  let mut help = HashMap::<String, String>::default();
 
   let file = File::open("./dfint-data/translations/help-documents.csv").unwrap();
   let mut reader = csv::Reader::from_reader(file);

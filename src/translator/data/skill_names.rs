@@ -21,7 +21,7 @@ pub struct SkillNames {
 
 impl SkillNames {
   fn new() -> Self {
-    let mut skill_names: SkillNames = Default::default();
+    let mut skill_names = SkillNames::default();
 
     let file = File::open("./dfint-data/translations/skill_names.csv").unwrap();
     let mut reader = csv::Reader::from_reader(file);

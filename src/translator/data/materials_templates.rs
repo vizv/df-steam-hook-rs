@@ -37,7 +37,7 @@ pub struct MaterialsTemplates {
 
 impl MaterialsTemplates {
   fn new() -> Self {
-    let mut materials_templates: MaterialsTemplates = Default::default();
+    let mut materials_templates = MaterialsTemplates::default();
 
     let file = File::open("./dfint-data/translations/materials_templates.csv").unwrap();
     let mut reader = csv::Reader::from_reader(file);

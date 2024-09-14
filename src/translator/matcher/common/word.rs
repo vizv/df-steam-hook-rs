@@ -2,22 +2,10 @@ use super::{super::super::data, pipeline};
 
 pub struct WordMatch<'a> {
   pub translated: String,
-  pub original: &'a str,
   pub remaining: &'a str,
 }
 
-pub fn match_dictionary<'a>(
-  dict: &'a data::Dictionary,
-  remaining: &'a str,
-  next_opt: Option<fn(&'a str) -> (bool, Option<String>)>,
-) -> (bool, Option<String>)
-where
-{
-  let next = next_opt.unwrap_or(|remaining| (remaining == "", None));
-  pipeline::match_pipeline(word_matcher(dict), remaining, next)
-}
-
-pub fn word_matcher<'a>(dict: &'a data::Dictionary) -> pipeline::MatchFn {
+pub fn word_matcher(dict: &data::Dictionary) -> pipeline::MatchFn {
   Box::new(move |remaining| {
     let mut results = pipeline::MatchResults::default();
 
@@ -33,13 +21,13 @@ pub fn word_matcher<'a>(dict: &'a data::Dictionary) -> pipeline::MatchFn {
 
       // lookup dictionary for prefix, run the closure for each match with translated string
       if let Some(translated) = dict.get(prefix) {
-        results.push((remaining, prefix, translated.to_owned()));
+        results.push((remaining, translated.to_owned()));
       }
     }
 
     // lookup dictionary for the whole remaining part (split at end of remaining part)
     if let Some(translated) = dict.get(remaining) {
-      results.push(("", remaining, translated.to_owned()));
+      results.push(("", translated.to_owned()));
     }
 
     results
@@ -47,7 +35,7 @@ pub fn word_matcher<'a>(dict: &'a data::Dictionary) -> pipeline::MatchFn {
 }
 
 pub fn deprecated_match_dictionaries<'a>(dicts: Vec<&'a data::Dictionary>, remaining: &'a str) -> Vec<WordMatch<'a>> {
-  let mut ret: Vec<WordMatch> = Default::default();
+  let mut ret = Vec::<WordMatch>::default();
 
   for &dict in dicts.iter() {
     ret.append(&mut deprecated_match_dictionary(dict, remaining));
@@ -59,10 +47,6 @@ pub fn deprecated_match_dictionaries<'a>(dicts: Vec<&'a data::Dictionary>, remai
 pub fn deprecated_match_dictionary<'a>(dict: &'a data::Dictionary, remaining: &'a str) -> Vec<WordMatch<'a>> {
   word_matcher(dict)(&remaining)
     .into_iter()
-    .map(|(remaining, original, translated)| WordMatch {
-      remaining,
-      original,
-      translated,
-    })
+    .map(|(remaining, translated)| WordMatch { remaining, translated })
     .collect()
 }
