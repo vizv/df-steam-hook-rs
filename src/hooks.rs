@@ -1,5 +1,5 @@
 use anyhow::Result;
-use cxx::let_cxx_string;
+use raw::{delete_cxxstring, new_cxxstring_n_chars};
 use retour::static_detour;
 
 use crate::config::CONFIG;
@@ -70,9 +70,9 @@ fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
   let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
   let width = screen::SCREEN.write().add_text(text);
 
-  let_cxx_string!(dummy = " ".repeat(width));
-  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
   unsafe { original!(gps, dummy_ptr, just, space) };
+  delete_cxxstring(dummy_ptr);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -96,9 +96,9 @@ fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
   let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
-  let_cxx_string!(dummy = " ".repeat(width));
-  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
   unsafe { original!(gps, dummy_ptr, just, space) };
+  delete_cxxstring(dummy_ptr);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -109,9 +109,9 @@ fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u3
   let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps).with_sflag(sflag);
   let width = screen::SCREEN.write().add_text(text);
 
-  let_cxx_string!(dummy = " ".repeat(width));
-  let dummy_ptr: usize = unsafe { core::mem::transmute(dummy) };
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
   unsafe { original!(gps, dummy_ptr, just, space, sflag) };
+  delete_cxxstring(dummy_ptr);
 }
 
 #[cfg_attr(target_os = "linux", hook(bypass))]

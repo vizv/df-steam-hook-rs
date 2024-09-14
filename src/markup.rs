@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use cxx::let_cxx_string;
+use raw::{delete_cxxstring, new_cxxstring};
 use std::collections::HashMap;
 
 use crate::{
@@ -252,12 +252,10 @@ impl MarkupTextBox {
               let mut ptr: MarkupWord = Default::default();
               let binding = buff.parse::<i32>().unwrap_or(0);
 
-              unsafe {
-                let_cxx_string!(key = "");
-                let key_ptr: usize = core::mem::transmute(key);
-                get_key_display(key_ptr, ENABLER.to_owned(), binding);
-                ptr.str = df::utils::deref_string(key_ptr);
-              };
+              let key_ptr = new_cxxstring();
+              get_key_display(key_ptr, ENABLER.to_owned(), binding);
+              ptr.str = df::utils::deref_string(key_ptr);
+              delete_cxxstring(key_ptr);
               ptr.color = df::graphic::get_uccolor(GPS.to_owned(), df::enums::CursesColor::LightGreen);
 
               text.word.push(ptr);
