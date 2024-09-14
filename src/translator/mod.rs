@@ -34,13 +34,16 @@ impl Translator {
 
     let key = StringWithContext { context, string }.key();
     if !self.cache.contains_key(&key) {
+      let lower_string = &string.to_lowercase();
       let content = if let Some(translated) = data::HELP.get(string) {
         translated.to_owned()
-      } else if let Some(translated) = matcher::match_workshop_string(string) {
+      } else if let Some(translated) = matcher::match_item_name(lower_string) {
         translated
-      } else if let Some(translated) = match_skill_level(string) {
+      } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
         translated
-      } else if let Some(translated) = data::MEGA.read().get(&string.to_lowercase()) {
+      } else if let Some(translated) = match_skill_level(lower_string) {
+        translated
+      } else if let Some(translated) = data::MEGA.read().get(lower_string) {
         translated.to_owned()
       } else if let Some(translated) = DICTIONARY.get(string) {
         translated.to_owned()

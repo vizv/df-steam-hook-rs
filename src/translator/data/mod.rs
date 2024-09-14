@@ -1,6 +1,7 @@
 mod dictionary;
-
+mod wildcard_table;
 pub use dictionary::Dictionary;
+pub use wildcard_table::WildcardTable;
 
 mod help;
 pub use help::HELP;
