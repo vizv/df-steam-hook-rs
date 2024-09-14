@@ -1,7 +1,7 @@
 use super::utils;
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Coord<T> {
   pub x: T,
   pub y: T,

@@ -7,7 +7,7 @@ use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
 use crate::screen::{self, SCREEN};
 use crate::translator::TRANSLATOR;
-use crate::{df, utils};
+use crate::{df, encodings, utils};
 
 use r#macro::hook;
 
@@ -15,6 +15,7 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst()?;
   attach_addst_top()?;
   attach_addst_flag()?;
+  attach_addchar()?;
   attach_addchar_flag()?;
   attach_gps_allocate()?;
   attach_update_all()?;
@@ -32,6 +33,7 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst()?;
   enable_addst_top()?;
   enable_addst_flag()?;
+  enable_addchar()?;
   enable_addchar_flag()?;
   enable_gps_allocate()?;
   enable_update_all()?;
@@ -49,6 +51,7 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst()?;
   disable_addst_top()?;
   disable_addst_flag()?;
+  disable_addchar()?;
   disable_addchar_flag()?;
   disable_gps_allocate()?;
   disable_update_all()?;
@@ -63,16 +66,131 @@ pub unsafe fn disable_all() -> Result<()> {
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
   let string = df::utils::deref_string(string_address);
 
   let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
   let width = screen::SCREEN.write().add_text(text);
 
-  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
   unsafe { original!(gps, dummy_ptr, just, space) };
   delete_cxxstring(dummy_ptr);
+}
+
+#[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "windows", hook(bypass))]
+fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
+  let string = df::utils::deref_string(string_address);
+
+  let text = screen::Text::new(TRANSLATOR.write().translate("addst_flag", &string)).by_graphic(gps).with_sflag(sflag);
+  let width = screen::SCREEN.write().add_text(text);
+
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
+  unsafe { original!(gps, dummy_ptr, just, space, sflag) };
+  delete_cxxstring(dummy_ptr);
+}
+
+fn get_caller_addr() -> usize {
+  let mut depth = 3;
+  let mut address = 0;
+  backtrace::trace(|f| {
+    depth -= 1;
+    address = f.ip() as usize;
+    depth > 0
+  });
+
+  let module = *utils::MODULE;
+  let ret = address - module;
+
+  ret
+}
+
+#[static_init::dynamic]
+static mut STRING_COLLECTOR: StringCollector = Default::default();
+
+#[derive(Debug, Default)]
+struct StringCollector {
+  last_caller: usize,
+  last_coord: df::common::Coord<i32>,
+  last_sflag: u32,
+  last_color_info: df::graphic::ColorInfo,
+  chars: Vec<u8>,
+}
+
+impl StringCollector {
+  fn push(&mut self, caller: usize, gps: usize, ch: u8, sflag: u32) {
+    let mut coord = df::graphic::deref_coord(gps);
+    let color_info = df::graphic::deref_color_info(gps);
+    if ch == 0
+      || coord != self.last_coord
+      || caller != self.last_caller
+      || sflag != self.last_sflag
+      || color_info != self.last_color_info
+    {
+      if self.last_caller != 0 {
+        df::graphic::set_coord(gps, &self.last_coord);
+        df::graphic::set_color_info(gps, &self.last_color_info);
+
+        let result: Vec<u8> =
+          self.chars.iter().flat_map(|&byte| encodings::cp437::CP437_TO_UTF8_BYTES[byte as usize].to_owned()).collect();
+        let string = String::from_utf8_lossy(&result).into_owned();
+
+        let mut text_coord = self.last_coord.clone();
+        text_coord.x *= screen::CANVAS_FONT_WIDTH;
+        text_coord.y *= screen::CANVAS_FONT_HEIGHT;
+        let text = screen::Text::new(TRANSLATOR.write().translate("string_collector", &string))
+          .by_graphic(gps)
+          .with_sflag(self.last_sflag);
+        let width = screen::SCREEN.write().add_text(text);
+
+        for _ in 0..width {
+          unsafe { handle_addchar_flag.call(gps, ' ' as u8, 1, self.last_sflag) };
+        }
+
+        if coord == self.last_coord {
+          coord = df::graphic::deref_coord(gps);
+        }
+        df::graphic::set_coord(gps, &coord);
+        df::graphic::set_color_info(gps, &color_info);
+        self.chars.clear();
+      }
+    }
+
+    self.last_caller = caller;
+    self.last_coord = coord;
+    self.last_sflag = sflag;
+    self.last_color_info = color_info;
+    if ch != 0 {
+      self.chars.push(ch);
+    }
+  }
+}
+
+#[cfg_attr(target_os = "linux", hook(bypass))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn addchar(gps: usize, ch: u8, advance: u8) {
+  let caller = get_caller_addr();
+
+  if ch == 0 || ch == 219 {
+    unsafe { original!(gps, ch, advance) };
+    return;
+  }
+  STRING_COLLECTOR.write().push(caller, gps, ch, 0);
+}
+
+#[cfg_attr(target_os = "linux", hook(bypass))]
+#[cfg_attr(target_os = "windows", hook(by_offset))]
+fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
+  let caller = get_caller_addr();
+
+  if ch == 0 || ch == 219 {
+    unsafe { original!(gps, ch, advance, sflag) };
+    return;
+  }
+
+  let caller = get_caller_addr();
+  STRING_COLLECTOR.write().push(caller, gps, ch, sflag);
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -93,37 +211,12 @@ fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
     }
   }
 
-  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
+  let text = screen::Text::new(TRANSLATOR.write().translate("addst_top", &string)).by_graphic(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
-  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
+  let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
   unsafe { original!(gps, dummy_ptr, just, space) };
   delete_cxxstring(dummy_ptr);
-}
-
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
-fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
-  let string = df::utils::deref_string(string_address);
-
-  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps).with_sflag(sflag);
-  let width = screen::SCREEN.write().add_text(text);
-
-  let dummy_ptr = new_cxxstring_n_chars(width, ' ');
-  unsafe { original!(gps, dummy_ptr, just, space, sflag) };
-  delete_cxxstring(dummy_ptr);
-}
-
-#[cfg_attr(target_os = "linux", hook(bypass))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
-fn addchar_flag(gps: usize, c: u8, advance: i8, sflag: u32) {
-  // skip top-half character for Windows
-  let flag = df::flags::ScreenTexPosFlag::from_bits_retain(sflag);
-  if flag.contains(df::flags::ScreenTexPosFlag::TOP_OF_TEXT) {
-    return;
-  }
-
-  unsafe { original!(gps, c, advance, sflag) };
 }
 
 #[cfg_attr(target_os = "linux", hook(by_symbol))]
@@ -177,6 +270,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
     return;
   }
 
+  STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
   screen::SCREEN.write().render(renderer);
   screen::SCREEN.write().clear();
 }

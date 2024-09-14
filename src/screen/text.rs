@@ -2,6 +2,7 @@ use crate::df;
 
 use super::{constants, data};
 
+#[derive(Debug)]
 pub struct Text {
   pub coord: df::common::Coord<i32>,
   pub data: data::Data,

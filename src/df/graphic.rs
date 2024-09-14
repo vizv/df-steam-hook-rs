@@ -1,14 +1,21 @@
+use std::ptr;
+
 use super::{common, enums, offsets, utils};
 
 pub fn deref_coord(addr: usize) -> common::Coord<i32> {
   common::Coord::at(addr + offsets::GRAPHIC_SCREENX)
 }
 
+pub fn set_coord(addr: usize, coord: &common::Coord<i32>) {
+  let p: *mut common::Coord<i32> = (addr + offsets::GRAPHIC_SCREENX) as *mut common::Coord<i32>;
+  unsafe { ptr::copy_nonoverlapping(coord, p, 1) };
+}
+
 pub fn deref_dim(addr: usize) -> common::Dimension<i32> {
   common::Dimension::at(addr + offsets::GRAPHIC_DIMX)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct ColorInfo {
   pub screenf: u8,
@@ -20,6 +27,15 @@ pub struct ColorInfo {
   pub screen_color_b: u8,
 }
 
+pub fn deref_color_info(addr: usize) -> ColorInfo {
+  utils::deref(addr + offsets::GRAPHIC_SCREENF)
+}
+
+pub fn set_color_info(addr: usize, color_info: &ColorInfo) {
+  let p = (addr + offsets::GRAPHIC_SCREENF) as *mut ColorInfo;
+  unsafe { ptr::copy_nonoverlapping(color_info, p, 1) };
+}
+
 pub fn deref_color(addr: usize) -> common::Color {
   let ColorInfo {
     use_old_16_colors,
@@ -29,7 +45,7 @@ pub fn deref_color(addr: usize) -> common::Color {
     screen_color_g: g,
     screen_color_b: b,
     ..
-  } = utils::deref(addr + offsets::GRAPHIC_SCREENF);
+  } = deref_color_info(addr);
 
   if use_old_16_colors {
     let fg = (screenf + if screenbright { 8 } else { 0 }) as usize;
