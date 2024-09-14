@@ -3,6 +3,9 @@ mod wildcard_table;
 pub use dictionary::Dictionary;
 pub use wildcard_table::WildcardTable;
 
+mod placeholder;
+mod transformer;
+
 mod help;
 pub use help::HELP;
 
@@ -11,6 +14,10 @@ mod skill_levels;
 mod skill_names;
 pub use skill_levels::SKILL_LEVELS;
 pub use skill_names::SKILL_NAMES;
+
+// plant-related strings
+mod plants;
+pub use plants::PLANTS;
 
 // raw files strings
 mod items;
