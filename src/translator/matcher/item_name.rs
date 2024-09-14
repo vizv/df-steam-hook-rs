@@ -4,7 +4,7 @@ use super::super::data;
 use super::common;
 
 #[static_init::dynamic]
-static COUNT_SUFFIX_REGEX: Regex = Regex::new(r"^\[\d+\]$").unwrap();
+static COUNT_SUFFIX_REGEX: Regex = Regex::new(r" \[\d+\]$").unwrap();
 
 const C_NOT_OWNER: &str = r"\$";
 const C_ON_FIRE: &str = "‼";
@@ -26,17 +26,19 @@ static DESIGNATION_PREFIX_REGEX: Regex = Regex::new(&format!("^({C_NOT_OWNER})?(
 static DESIGNATION_SUFFIX_REGEX: Regex = Regex::new(&format!("({C_QUALITY})?({CR_MAGIC})?(?:({CR_DECOR})({C_QUALITY})?)?({CR_UNCLAIM})?({CR_OFF_SITE})?({S_WEAR})?({C_ON_FIRE})?({C_NOT_OWNER})?$")).unwrap();
 
 #[derive(Debug, Default)]
-struct DesignatedItem<'a> {
+struct ItemName<'a> {
   prefix: &'a str,
   suffix: &'a str,
+  count: &'a str,
   name: &'a str,
 }
 
-impl<'a> DesignatedItem<'a> {
+impl<'a> ItemName<'a> {
   fn new(string: &'a str) -> Self {
     let mut ret: Self = Self::default();
     ret.name = string;
 
+    // match designation prefix and suffix
     if let (Some(prefix_match), Some(suffix_match)) = (
       DESIGNATION_PREFIX_REGEX.find(ret.name),
       DESIGNATION_SUFFIX_REGEX.find(ret.name),
@@ -64,55 +66,47 @@ impl<'a> DesignatedItem<'a> {
       }
     }
 
+    // match count suffix
+    if let Some(count_match) = COUNT_SUFFIX_REGEX.find(ret.name) {
+      (ret.name, ret.count) = ret.name.split_at(count_match.start());
+    }
+
     ret
   }
 
-  fn wrap(&self, name: String) -> String {
-    vec![self.prefix, &name, self.suffix].concat()
+  fn wrap(&self, name: &str) -> String {
+    vec![self.prefix, &name, self.count, self.suffix].concat()
   }
 }
 
 pub fn match_item_name(string: &String) -> Option<String> {
-  let item = DesignatedItem::new(string);
-  let matches = common::match_wildcard_table(&data::ITEMS.wildcard_table, item.name, |remaining| {
-    common::match_dictionary(&data::MATERIALS.adjectives, remaining)
-  });
-  for &common::WildcardMatch {
-    placeholder,
-    original,
-    translated,
-    prefix,
-    suffix,
-    remaining,
-  } in matches.iter()
-  {
-    let mut remaining = remaining;
-    let mut count_suffix = "";
-    if COUNT_SUFFIX_REGEX.is_match(remaining) {
-      count_suffix = remaining;
-      remaining = "";
-    }
-
-    if !remaining.is_empty() {
-      continue;
-    }
-
-    let mut translated = placeholder.replace("{}", translated);
-    if let Some(&use_noun_for_adj) = data::ITEMS.should_use_noun_for_adj.get(&(prefix.to_string(), suffix.to_string()))
-    {
-      if use_noun_for_adj {
-        if let Some(translated_noun) = data::MATERIALS.nouns.get(original) {
-          translated = placeholder.replace("{}", translated_noun);
+  let item = ItemName::new(string);
+  let matches = common::match_wildcard_table(
+    &data::ITEMS.wildcard_table,
+    item.name,
+    |remaining| common::deprecated_match_dictionary(&data::MATERIALS.adjectives, remaining),
+    |placeholder, translated, prefix, original, suffix| {
+      let mut translated = placeholder.replace("{}", &translated);
+      if let Some(&use_noun_for_adj) =
+        data::ITEMS.should_use_noun_for_adj.get(&(prefix.to_string(), suffix.to_string()))
+      {
+        if use_noun_for_adj {
+          if let Some(translated_noun) = data::MATERIALS.nouns.get(original) {
+            translated = placeholder.replace("{}", translated_noun);
+          }
         }
       }
-    }
 
-    if !count_suffix.is_empty() {
-      translated.push(' ');
-      translated.push_str(&count_suffix)
+      translated
+    },
+  );
+  for common::WordMatch {
+    translated, remaining, ..
+  } in matches.into_iter()
+  {
+    if remaining.is_empty() {
+      return Some(item.wrap(&translated));
     }
-
-    return Some(item.wrap(translated));
   }
 
   None
