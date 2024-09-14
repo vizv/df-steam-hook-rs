@@ -50,16 +50,12 @@ fn designation_wrapper_matcher<'a>() -> matcher::MatchFn<'a> {
             }
           }
         }
-        log::debug!("111 {remaining:?} {prefix_len:?}");
         (prefix, remaining) = remaining.split_at(prefix_len);
-        log::debug!("222 {prefix:?} {remaining:?} {suffix_len:?}");
         (remaining, suffix) = remaining.split_at(remaining.len() - suffix_len);
-        log::debug!("333 {remaining:?} {suffix:?}");
       }
     }
 
     let wrapper = vec![prefix, "{}", suffix].concat();
-    log::debug!("??? {wrapper:?} {remaining:?}");
     vec![(remaining, wrapper)]
   })
 }
@@ -82,12 +78,12 @@ fn item_count_suffix_matcher<'a>() -> matcher::MatchFn<'a> {
 }
 
 pub fn translate_item_name(string: &String) -> Option<String> {
+  let materials_adjectives_matcher = matcher::word_matcher(matcher::DictType::Dictionary(&data::MATERIALS.adjectives));
   let designation_wrapper_matcher = designation_wrapper_matcher();
   let item_count_suffix_matcher = item_count_suffix_matcher();
   let items_wildcard_matcher = matcher::wildcard_matcher(
     &data::ITEMS.wildcard_table,
-    // FIXME
-    |remaining| matcher::deprecated_match_dictionary(&data::MATERIALS.adjectives, remaining),
+    move |remaining| materials_adjectives_matcher(remaining),
     |placeholder, translated| placeholder.replace("{}", &translated),
   );
   let remaining = string;
