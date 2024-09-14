@@ -1,8 +1,10 @@
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
+
+use indexmap::IndexMap;
 
 #[derive(Debug, Default)]
 pub struct Dictionary {
-  pub dict: HashMap<String, String>,
+  pub dict: IndexMap<String, String>,
   pub max_count: usize,
 }
 
@@ -22,7 +24,7 @@ impl Dictionary {
 }
 
 impl Deref for Dictionary {
-  type Target = HashMap<String, String>;
+  type Target = IndexMap<String, String>;
 
   fn deref(&self) -> &Self::Target {
     &self.dict

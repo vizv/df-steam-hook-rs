@@ -1,10 +1,12 @@
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
+
+use indexmap::IndexMap;
 
 use super::dictionary;
 
 #[derive(Debug, Default)]
 pub struct WildcardTable {
-  pub dict: HashMap<String, dictionary::Dictionary>,
+  pub dict: IndexMap<String, dictionary::Dictionary>,
   pub max_count: usize,
 }
 
@@ -43,7 +45,7 @@ impl WildcardTable {
 }
 
 impl Deref for WildcardTable {
-  type Target = HashMap<String, dictionary::Dictionary>;
+  type Target = IndexMap<String, dictionary::Dictionary>;
 
   fn deref(&self) -> &Self::Target {
     &self.dict
