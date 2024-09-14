@@ -1,28 +1,24 @@
-use super::super::super::data;
-use super::{pipeline, word};
+use super::super::data;
+use super::{common, word};
 
 pub fn wildcard_matcher<'a, M, R>(
   wildcard_table: &'a data::WildcardTable,
   match_placeholder: M,
   replace_placeholder: R,
-) -> pipeline::MatchFn
+) -> common::MatchFn
 where
   M: Fn(&'a str) -> Vec<word::WordMatch<'a>> + 'a,
   R: Fn(String, String) -> String + 'a,
 {
   Box::new(move |remaining| {
-    let mut ret = pipeline::MatchResults::default();
+    let mut ret = common::MatchResults::default();
 
     let matches = match_wildcard_table_prefix(wildcard_table, remaining);
     for (remaining, dict) in matches.into_iter() {
       let matches = match_placeholder(remaining);
-      for word::WordMatch { translated, remaining } in matches.into_iter() {
-        let matches = word::deprecated_match_dictionary(dict, remaining);
-        for word::WordMatch {
-          translated: placeholder,
-          remaining,
-        } in matches.into_iter()
-        {
+      for (remaining, translated) in matches.into_iter() {
+        let matches = word::word_matcher(word::DictType::Dictionary(dict))(remaining);
+        for (remaining, placeholder) in matches.into_iter() {
           let translated = replace_placeholder(placeholder, translated.to_string());
           ret.push((remaining, translated));
         }

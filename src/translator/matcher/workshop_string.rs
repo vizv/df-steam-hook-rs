@@ -1,5 +1,5 @@
 use super::super::data;
-use super::common;
+use super::word;
 
 use WorkshopStringMatchingState::*;
 
@@ -104,6 +104,14 @@ impl<'a> WorkshopStringCandidate<'a> {
 }
 
 pub fn match_workshop_string(string: &str) -> Option<String> {
+  let prefix_matcher = word::word_matcher(word::DictType::Dictionary(&PREFIX));
+  let item_adjectives_matcher = word::word_matcher(word::DictType::Dictionary(&data::ITEMS.adjectives));
+  let materials_adjectives_matcher = word::word_matcher(word::DictType::Dictionaries(vec![
+    &data::MATERIALS_TEMPLATES.adjectives,
+    &data::MATERIALS.adjectives,
+  ]));
+  let item_nouns_matcher = word::word_matcher(word::DictType::Dictionary(&data::ITEMS.nouns));
+
   let mut candidates = Vec::new();
   let mut candidate = WorkshopStringCandidate::default();
   candidate.remaining = string;
@@ -118,44 +126,25 @@ pub fn match_workshop_string(string: &str) -> Option<String> {
       }
 
       if candidate.should_match_prefix() {
-        let matches = common::deprecated_match_dictionary(&PREFIX, candidate.remaining);
-        for common::WordMatch {
-          translated, remaining, ..
-        } in matches.into_iter()
-        {
+        for (remaining, translated) in prefix_matcher(candidate.remaining) {
           next_candidates.push(candidate.match_prefix(translated, remaining));
         }
       }
 
       if candidate.should_match_item_adjective() {
-        let matches = common::deprecated_match_dictionary(&data::ITEMS.adjectives, candidate.remaining);
-        for common::WordMatch {
-          translated, remaining, ..
-        } in matches.into_iter()
-        {
+        for (remaining, translated) in item_adjectives_matcher(candidate.remaining) {
           next_candidates.push(candidate.match_item_adjective(translated, remaining));
         }
       }
 
       if candidate.should_match_material_adjective() {
-        let matches = common::deprecated_match_dictionaries(
-          vec![&data::MATERIALS_TEMPLATES.adjectives, &data::MATERIALS.adjectives],
-          candidate.remaining,
-        );
-        for common::WordMatch {
-          translated, remaining, ..
-        } in matches.into_iter()
-        {
+        for (remaining, translated) in materials_adjectives_matcher(candidate.remaining) {
           next_candidates.push(candidate.match_material_adjective(translated, remaining));
         }
       }
 
       if candidate.should_match_item_noun() {
-        let matches = common::deprecated_match_dictionary(&data::ITEMS.nouns, candidate.remaining);
-        for common::WordMatch {
-          translated, remaining, ..
-        } in matches.into_iter()
-        {
+        for (remaining, translated) in item_nouns_matcher(candidate.remaining) {
           next_candidates.push(candidate.match_item_noun(translated, remaining));
         }
       }
