@@ -12,8 +12,8 @@ pub fn new_cxxstring() -> usize {
   unsafe { string_create() }
 }
 
-pub fn new_cxxstring_n_chars(len: usize, ch: char) -> usize {
-  unsafe { string_create_n_chars(len, ch as u8) }
+pub fn new_cxxstring_n_chars(len: usize, ch: u8) -> usize {
+  unsafe { string_create_n_chars(len, ch) }
 }
 
 pub fn delete_cxxstring(addr: usize) {
