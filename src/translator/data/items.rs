@@ -32,7 +32,7 @@ pub struct Items {
 
 impl Items {
   fn new() -> Self {
-    let mut items: Items = Default::default();
+    let mut items = Items::default();
 
     let file = File::open("./dfint-data/translations/items.csv").unwrap();
     let mut reader = csv::Reader::from_reader(file);

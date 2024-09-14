@@ -36,7 +36,7 @@ pub struct Materials {
 
 impl Materials {
   fn new() -> Self {
-    let mut materials: Materials = Default::default();
+    let mut materials = Materials::default();
     let mut rule_set: HashMap<String, (String, String, String, String)> = HashMap::new();
 
     let file = File::open("./dfint-data/translations/materials-generation-rules.csv").unwrap();
