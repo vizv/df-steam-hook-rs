@@ -27,31 +27,33 @@ fn designation_wrapper_matcher<'a>() -> matcher::MatchFn<'a> {
     let mut prefix = "";
     let mut suffix = "";
 
-    // match designation prefix and suffix
-    if let (Some(prefix_match), Some(suffix_match)) = (
-      DESIGNATION_PREFIX_REGEX.find(remaining),
-      DESIGNATION_SUFFIX_REGEX.find(remaining),
-    ) {
-      if !prefix_match.is_empty() && !suffix_match.is_empty() {
-        let prefix_caps = DESIGNATION_PREFIX_REGEX.captures(remaining).unwrap();
-        let suffix_caps = DESIGNATION_SUFFIX_REGEX.captures(remaining).unwrap();
-        let mut prefix_len = 0;
-        let mut suffix_len = 0;
-        for i in 1..TOKEN_COUNT {
-          if let (Some(prefix_token), Some(suffix_token)) = (prefix_caps.get(i), suffix_caps.get(TOKEN_COUNT - i)) {
-            let prefix_token = prefix_token.as_str();
-            let suffix_token = suffix_token.as_str();
-            if match i {
-              1 | 2 | 4 | 5 | 7 | 8 => true,
-              _ => prefix_token == suffix_token,
-            } {
-              prefix_len += prefix_token.len();
-              suffix_len += suffix_token.len();
+    // match designation prefix and suffix only if we have at least 3 characters
+    if remaining.len() > 2 {
+      if let (Some(prefix_match), Some(suffix_match)) = (
+        DESIGNATION_PREFIX_REGEX.find(remaining),
+        DESIGNATION_SUFFIX_REGEX.find(remaining),
+      ) {
+        if !prefix_match.is_empty() && !suffix_match.is_empty() {
+          let prefix_caps = DESIGNATION_PREFIX_REGEX.captures(remaining).unwrap();
+          let suffix_caps = DESIGNATION_SUFFIX_REGEX.captures(remaining).unwrap();
+          let mut prefix_len = 0;
+          let mut suffix_len = 0;
+          for i in 1..TOKEN_COUNT {
+            if let (Some(prefix_token), Some(suffix_token)) = (prefix_caps.get(i), suffix_caps.get(TOKEN_COUNT - i)) {
+              let prefix_token = prefix_token.as_str();
+              let suffix_token = suffix_token.as_str();
+              if match i {
+                1 | 2 | 4 | 5 | 7 | 8 => true,
+                _ => prefix_token == suffix_token,
+              } {
+                prefix_len += prefix_token.len();
+                suffix_len += suffix_token.len();
+              }
             }
           }
+          (prefix, remaining) = remaining.split_at(prefix_len);
+          (remaining, suffix) = remaining.split_at(remaining.len() - suffix_len);
         }
-        (prefix, remaining) = remaining.split_at(prefix_len);
-        (remaining, suffix) = remaining.split_at(remaining.len() - suffix_len);
       }
     }
 
