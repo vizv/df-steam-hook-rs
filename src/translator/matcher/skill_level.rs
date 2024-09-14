@@ -75,23 +75,23 @@ pub fn match_skill_level(string: &String) -> Option<String> {
       }
 
       if candidate.should_match_level() {
-        common::match_token(
-          vec![&data::SKILL_LEVELS.adjectives],
-          candidate.remaining,
-          |translated, remaining| {
-            next_candidates.push(candidate.match_level(translated, remaining));
-          },
-        );
+        let matches = common::match_dictionary(&data::SKILL_LEVELS.adjectives, candidate.remaining);
+        for &common::WordMatch {
+          translated, remaining, ..
+        } in matches.iter()
+        {
+          next_candidates.push(candidate.match_level(translated, remaining));
+        }
       }
 
       if candidate.should_match_skill() {
-        common::match_token(
-          vec![&data::SKILL_NAMES.nouns],
-          candidate.remaining,
-          |translated, remaining| {
-            next_candidates.push(candidate.match_skill(translated, remaining));
-          },
-        );
+        let matches = common::match_dictionary(&data::SKILL_NAMES.nouns, candidate.remaining);
+        for &common::WordMatch {
+          translated, remaining, ..
+        } in matches.iter()
+        {
+          next_candidates.push(candidate.match_skill(translated, remaining));
+        }
       }
     }
 

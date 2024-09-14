@@ -1,6 +1,6 @@
-use std::fs::File;
+use std::{collections::HashMap, fs::File};
 
-use super::dictionary;
+use super::{dictionary, wildcard_table};
 
 #[static_init::dynamic]
 pub static ITEMS: Items = Items::new();
@@ -15,15 +15,19 @@ struct Item {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct ItemOther {
-  noun: String,
-  noun_translation: String,
+struct ItemWildcard {
+  wildcard: String,
+  wildcard_translation: String,
+  use_noun_for_adj: String,
+  use_standard_plural: String,
 }
 
 #[derive(Debug, Default)]
 pub struct Items {
   pub nouns: dictionary::Dictionary,
   pub adjectives: dictionary::Dictionary,
+  pub wildcard_table: wildcard_table::WildcardTable,
+  pub should_use_noun_for_adj: HashMap<(String, String), bool>,
 }
 
 impl Items {
@@ -46,12 +50,35 @@ impl Items {
       items.adjectives.insert(adjective, adjective_translation);
     }
 
-    let file = File::open("./dfint-data/translations/items-others.csv").unwrap();
+    let file = File::open("./dfint-data/translations/items-builtin.csv").unwrap();
     let mut reader = csv::Reader::from_reader(file);
     for result in reader.deserialize() {
-      let ItemOther { noun, noun_translation } = result.unwrap();
-      items.nouns.insert(noun, noun_translation);
+      let ItemWildcard {
+        mut wildcard,
+        wildcard_translation,
+        use_noun_for_adj,
+        use_standard_plural,
+      } = result.unwrap();
+      if wildcard.contains("{}") {
+        if let Some(key) = items.wildcard_table.insert(wildcard.clone(), wildcard_translation.clone()) {
+          items.should_use_noun_for_adj.insert(key, !use_noun_for_adj.is_empty());
+        }
+        if !use_standard_plural.is_empty() {
+          wildcard.push('s');
+          if let Some(key) = items.wildcard_table.insert(wildcard, wildcard_translation) {
+            items.should_use_noun_for_adj.insert(key, !use_noun_for_adj.is_empty());
+          }
+        }
+      } else {
+        items.nouns.insert(wildcard.clone(), wildcard_translation.clone());
+        if !use_standard_plural.is_empty() {
+          wildcard.push('s');
+          items.nouns.insert(wildcard, wildcard_translation);
+        }
+      }
     }
+
+    // println!("{:#?}", items.wildcard_table);
 
     items
   }

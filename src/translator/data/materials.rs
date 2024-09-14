@@ -119,6 +119,7 @@ impl Materials {
     }
 
     // println!("{materials:#?}");
+    // println!("{:#?}", materials.adjectives);
 
     // TODO:
     // materials.nouns.insert(noun_stone, noun_stone_translation);
