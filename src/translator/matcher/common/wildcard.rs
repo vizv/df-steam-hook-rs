@@ -1,59 +1,67 @@
 use super::super::super::data;
-use super::word;
+use super::{pipeline, word, WordMatch};
 
-pub struct WildcardMatch<'a> {
-  pub placeholder: &'a str,
-  pub original: &'a str,
-  pub translated: &'a str,
-  pub prefix: &'a str,
-  pub suffix: &'a str,
-  pub remaining: &'a str,
-}
-
-pub fn match_wildcard_table<'a, M>(
+pub fn wildcard_matcher<'a, M, R>(
   wildcard_table: &'a data::WildcardTable,
-  remaining: &'a str,
-  mut match_placeholder: M,
-) -> Vec<WildcardMatch<'a>>
+  match_placeholder: M,
+  replace_placeholder: R,
+) -> pipeline::MatchFn
 where
-  M: FnMut(&'a str) -> Vec<word::WordMatch<'a>>,
+  M: Fn(&'a str) -> Vec<word::WordMatch<'a>> + 'a,
+  R: Fn(String, String, &'a str, &'a str, &'a str) -> String + 'a,
 {
-  let mut ret: Vec<WildcardMatch<'a>> = Default::default();
+  Box::new(move |remaining| {
+    let mut ret = pipeline::MatchResults::default();
 
-  let matches = match_wildcard_table_prefix(wildcard_table, remaining);
-  for &WildcardPrefixMatch {
-    dict,
-    prefix,
-    remaining,
-  } in matches.iter()
-  {
-    let matches = match_placeholder(remaining);
-    for &word::WordMatch {
-      translated,
-      original,
+    let matches = match_wildcard_table_prefix(wildcard_table, remaining);
+    for WildcardPrefixMatch {
+      dict,
+      prefix,
       remaining,
-    } in matches.iter()
+    } in matches.into_iter()
     {
-      let matches = word::match_dictionary(dict, remaining);
-      for &word::WordMatch {
-        translated: placeholder,
-        original: suffix,
+      let matches = match_placeholder(remaining);
+      for word::WordMatch {
+        translated,
+        original,
         remaining,
-      } in matches.iter()
+      } in matches.into_iter()
       {
-        ret.push(WildcardMatch {
-          placeholder,
-          original,
-          translated,
-          prefix,
-          suffix,
+        let matches = word::deprecated_match_dictionary(dict, remaining);
+        for word::WordMatch {
+          translated: placeholder,
+          original: suffix,
           remaining,
-        })
+        } in matches.into_iter()
+        {
+          let translated = replace_placeholder(placeholder, translated.to_string(), prefix, original, suffix);
+          ret.push((remaining, original, translated));
+        }
       }
     }
-  }
 
-  ret
+    ret
+  })
+}
+
+pub fn match_wildcard_table<'a, M, R>(
+  wildcard_table: &'a data::WildcardTable,
+  remaining: &'a str,
+  match_placeholder: M,
+  replace_placeholder: R,
+) -> Vec<word::WordMatch<'a>>
+where
+  M: Fn(&'a str) -> Vec<word::WordMatch<'a>> + 'a,
+  R: Fn(String, String, &'a str, &'a str, &'a str) -> String + 'a,
+{
+  wildcard_matcher(&wildcard_table, match_placeholder, replace_placeholder)(remaining)
+    .into_iter()
+    .map(|(remaining, original, translated)| WordMatch {
+      remaining,
+      original,
+      translated,
+    })
+    .collect()
 }
 
 struct WildcardPrefixMatch<'a> {

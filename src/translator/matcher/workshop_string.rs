@@ -27,15 +27,15 @@ impl Default for WorkshopStringMatchingState {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone)]
 struct WorkshopStringCandidate<'a> {
   state: WorkshopStringMatchingState,
   remaining: &'a str,
 
-  prefix: &'a str,
-  item_adj: &'a str,
-  material_adj: &'a str,
-  item_noun: &'a str,
+  prefix: String,
+  item_adj: String,
+  material_adj: String,
+  item_noun: String,
 }
 
 impl<'a> WorkshopStringCandidate<'a> {
@@ -43,7 +43,7 @@ impl<'a> WorkshopStringCandidate<'a> {
     matches!(self.state, Init)
   }
 
-  fn match_prefix(&self, translated: &'a str, remaining: &'a str) -> Self {
+  fn match_prefix(&self, translated: String, remaining: &'a str) -> Self {
     let mut candidate = self.clone();
     candidate.prefix = translated;
     candidate.state = PrefixMatched;
@@ -55,7 +55,7 @@ impl<'a> WorkshopStringCandidate<'a> {
     matches!(self.state, PrefixMatched)
   }
 
-  fn match_item_adjective(&self, translated: &'a str, remaining: &'a str) -> Self {
+  fn match_item_adjective(&self, translated: String, remaining: &'a str) -> Self {
     let mut candidate = self.clone();
     candidate.item_adj = translated;
     candidate.state = ItemAdjMatched;
@@ -67,7 +67,7 @@ impl<'a> WorkshopStringCandidate<'a> {
     matches!(self.state, PrefixMatched | ItemAdjMatched)
   }
 
-  fn match_material_adjective(&self, translated: &'a str, remaining: &'a str) -> Self {
+  fn match_material_adjective(&self, translated: String, remaining: &'a str) -> Self {
     let mut candidate = self.clone();
     candidate.material_adj = translated;
     candidate.state = MaterialAdjMatched;
@@ -79,7 +79,7 @@ impl<'a> WorkshopStringCandidate<'a> {
     matches!(self.state, PrefixMatched | ItemAdjMatched | MaterialAdjMatched)
   }
 
-  fn match_item_noun(&self, translated: &'a str, remaining: &'a str) -> Self {
+  fn match_item_noun(&self, translated: String, remaining: &'a str) -> Self {
     let mut candidate = self.clone();
     candidate.item_noun = translated;
     candidate.state = Matched;
@@ -91,7 +91,7 @@ impl<'a> WorkshopStringCandidate<'a> {
     matches!(self.state, Matched) && self.remaining.is_empty()
   }
 
-  fn build(self) -> String {
+  fn build(&self) -> String {
     let Self {
       prefix,
       item_adj,
@@ -118,43 +118,43 @@ pub fn match_workshop_string(string: &str) -> Option<String> {
       }
 
       if candidate.should_match_prefix() {
-        let matches = common::match_dictionary(&PREFIX, candidate.remaining);
-        for &common::WordMatch {
+        let matches = common::deprecated_match_dictionary(&PREFIX, candidate.remaining);
+        for common::WordMatch {
           translated, remaining, ..
-        } in matches.iter()
+        } in matches.into_iter()
         {
           next_candidates.push(candidate.match_prefix(translated, remaining));
         }
       }
 
       if candidate.should_match_item_adjective() {
-        let matches = common::match_dictionary(&data::ITEMS.adjectives, candidate.remaining);
-        for &common::WordMatch {
+        let matches = common::deprecated_match_dictionary(&data::ITEMS.adjectives, candidate.remaining);
+        for common::WordMatch {
           translated, remaining, ..
-        } in matches.iter()
+        } in matches.into_iter()
         {
           next_candidates.push(candidate.match_item_adjective(translated, remaining));
         }
       }
 
       if candidate.should_match_material_adjective() {
-        let matches = common::match_dictionaries(
+        let matches = common::deprecated_match_dictionaries(
           vec![&data::MATERIALS_TEMPLATES.adjectives, &data::MATERIALS.adjectives],
           candidate.remaining,
         );
-        for &common::WordMatch {
+        for common::WordMatch {
           translated, remaining, ..
-        } in matches.iter()
+        } in matches.into_iter()
         {
           next_candidates.push(candidate.match_material_adjective(translated, remaining));
         }
       }
 
       if candidate.should_match_item_noun() {
-        let matches = common::match_dictionary(&data::ITEMS.nouns, candidate.remaining);
-        for &common::WordMatch {
+        let matches = common::deprecated_match_dictionary(&data::ITEMS.nouns, candidate.remaining);
+        for common::WordMatch {
           translated, remaining, ..
-        } in matches.iter()
+        } in matches.into_iter()
         {
           next_candidates.push(candidate.match_item_noun(translated, remaining));
         }
