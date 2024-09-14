@@ -194,7 +194,7 @@ fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  MARKUP.write().add(text, &TRANSLATOR.write().translate("addst", &string));
+  MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string));
 }
 
 #[cfg_attr(target_os = "linux", hook(by_offset))]

@@ -5,6 +5,7 @@ pub use wildcard_table::WildcardTable;
 
 mod placeholder;
 mod transformer;
+mod rules;
 
 mod help;
 pub use help::HELP;
