@@ -92,7 +92,7 @@ fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u3
 }
 
 fn get_caller_addr() -> usize {
-  let mut depth = 3;
+  let mut depth = 4;
   let mut address = 0;
   backtrace::trace(|f| {
     depth -= 1;
@@ -120,15 +120,19 @@ struct StringCollector {
 
 impl StringCollector {
   fn push(&mut self, caller: usize, gps: usize, ch: u8, sflag: u32) {
+    if caller == 0 && self.last_caller == 0 {
+      return;
+    }
+
     let mut coord = df::graphic::deref_coord(gps);
     let color_info = df::graphic::deref_color_info(gps);
-    if ch == 0
+    if caller == 0
       || coord != self.last_coord
       || caller != self.last_caller
       || sflag != self.last_sflag
       || color_info != self.last_color_info
     {
-      if self.last_caller != 0 {
+      if self.last_caller != 0 && !self.chars.is_empty() {
         df::graphic::set_coord(gps, &self.last_coord);
         df::graphic::set_color_info(gps, &self.last_color_info);
 
@@ -157,34 +161,37 @@ impl StringCollector {
       }
     }
 
+    if caller == 0 {
+      *self = Default::default();
+      return;
+    }
+
     self.last_caller = caller;
     self.last_coord = coord;
     self.last_sflag = sflag;
     self.last_color_info = color_info;
-    if ch != 0 {
-      self.chars.push(ch);
-    }
+    self.chars.push(ch);
   }
 }
 
 #[cfg_attr(target_os = "linux", hook(bypass))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addchar(gps: usize, ch: u8, advance: u8) {
-  let caller = get_caller_addr();
-
-  if ch == 0 || ch == 219 {
+  if ch == 0 || ch == 219 || advance != 1 {
+    STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
     unsafe { original!(gps, ch, advance) };
     return;
   }
+
+  let caller = get_caller_addr();
   STRING_COLLECTOR.write().push(caller, gps, ch, 0);
 }
 
 #[cfg_attr(target_os = "linux", hook(bypass))]
 #[cfg_attr(target_os = "windows", hook(by_offset))]
 fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
-  let caller = get_caller_addr();
-
-  if ch == 0 || ch == 219 {
+  if ch == 0 || ch == 219 || advance != 1 {
+    STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
     unsafe { original!(gps, ch, advance, sflag) };
     return;
   }
@@ -270,7 +277,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
     return;
   }
 
-  STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
+  // STRING_COLLECTOR.write().push(0, *GPS, 0, 0); // FIXME: this cause the bottom flashing
   screen::SCREEN.write().render(renderer);
   screen::SCREEN.write().clear();
 }
