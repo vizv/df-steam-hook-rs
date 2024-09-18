@@ -11,7 +11,7 @@ pub static OFFSETS: Offsets = Offsets::new();
 pub struct Offsets {
   #[cfg(target_os = "linux")]
   g_src_maps: BTreeMap<u64, (u64, u64)>,
-  pub self_base: usize,
+  self_base: usize,
 }
 
 impl Offsets {
@@ -79,8 +79,9 @@ impl Offsets {
   }
 
   pub fn resolve(&self, address: usize) -> Option<(&'static str, usize)> {
+    let address = address - self.self_base;
     if address < 0xffffffff {
-      return Some(("self", address - self.self_base));
+      return Some(("self", address));
     }
 
     #[cfg(target_os = "linux")]

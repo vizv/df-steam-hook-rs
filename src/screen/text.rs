@@ -28,8 +28,9 @@ impl Text {
   }
 
   pub fn color_by_graphic(mut self, gps: usize) -> Self {
-    let color = df::graphic::deref_color(gps);
-    self.data = self.data.with_color(color);
+    let colors = df::graphic::deref_color(gps);
+    self.data = self.data.with_fg_color(colors.0);
+    self.data = self.data.with_bg_color(colors.1);
     self
   }
 
@@ -60,8 +61,8 @@ impl Text {
     self
   }
 
-  pub fn with_color(mut self, color: df::common::Color) -> Self {
-    self.data = self.data.with_color(color);
+  pub fn with_fg_color(mut self, color: df::common::Color) -> Self {
+    self.data = self.data.with_fg_color(color);
     self
   }
 }

@@ -110,29 +110,13 @@ fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u3
 }
 
 #[cfg(target_os = "windows")]
-fn get_caller_addr() -> usize {
-  let mut depth = 4;
-  let mut address = 0;
-  backtrace::trace(|f| {
-    depth -= 1;
-    address = f.ip() as usize;
-    depth > 0
-  });
-
-  let module = OFFSETS.self_base;
-  let ret = address - module;
-
-  ret
-}
-
-#[cfg(target_os = "windows")]
 #[static_init::dynamic]
 static mut STRING_COLLECTOR: StringCollector = Default::default();
 
 #[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
 struct StringCollector {
-  last_caller: usize,
+  last_caller: String,
   last_coord: df::common::Coord<i32>,
   last_sflag: u32,
   last_color_info: df::graphic::ColorInfo,
@@ -141,20 +125,20 @@ struct StringCollector {
 
 #[cfg(target_os = "windows")]
 impl StringCollector {
-  fn push(&mut self, caller: usize, gps: usize, ch: u8, sflag: u32) {
-    if caller == 0 && self.last_caller == 0 {
+  fn push(&mut self, caller: String, gps: usize, ch: u8, sflag: u32) {
+    if caller == "" && self.last_caller == "" {
       return;
     }
 
     let mut coord = df::graphic::deref_coord(gps);
     let color_info = df::graphic::deref_color_info(gps);
-    if caller == 0
+    if caller == ""
       || coord != self.last_coord
       || caller != self.last_caller
       || sflag != self.last_sflag
       || color_info != self.last_color_info
     {
-      if self.last_caller != 0 && !self.chars.is_empty() {
+      if self.last_caller != "" && !self.chars.is_empty() {
         df::graphic::set_coord(gps, &self.last_coord);
         df::graphic::set_color_info(gps, &self.last_color_info);
 
@@ -162,9 +146,6 @@ impl StringCollector {
           self.chars.iter().flat_map(|&byte| encodings::cp437::CP437_TO_UTF8_BYTES[byte as usize].to_owned()).collect();
         let string = String::from_utf8_lossy(&result).into_owned();
 
-        let mut text_coord = self.last_coord.clone();
-        text_coord.x *= screen::CANVAS_FONT_WIDTH;
-        text_coord.y *= screen::CANVAS_FONT_HEIGHT;
         let text = screen::Text::new(TRANSLATOR.write().translate("string_collector", &string))
           .by_graphic(gps)
           .with_sflag(self.last_sflag);
@@ -183,7 +164,7 @@ impl StringCollector {
       }
     }
 
-    if caller == 0 {
+    if caller == "" {
       *self = Default::default();
       return;
     }
@@ -200,12 +181,12 @@ impl StringCollector {
 #[hook]
 fn addchar(gps: usize, ch: u8, advance: u8) {
   if ch == 0 || ch == 219 || advance != 1 {
-    STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
+    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
     unsafe { original!(gps, ch, advance) };
     return;
   }
 
-  let caller = get_caller_addr();
+  let caller = utils::backtrace();
   STRING_COLLECTOR.write().push(caller, gps, ch, 0);
 }
 
@@ -213,12 +194,12 @@ fn addchar(gps: usize, ch: u8, advance: u8) {
 #[hook]
 fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
   if ch == 0 || ch == 219 || advance != 1 {
-    STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
+    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
     unsafe { original!(gps, ch, advance, sflag) };
     return;
   }
 
-  let caller = get_caller_addr();
+  let caller = utils::backtrace();
   STRING_COLLECTOR.write().push(caller, gps, ch, sflag);
 }
 
@@ -293,7 +274,10 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
     return;
   }
 
-  // STRING_COLLECTOR.write().push(0, *GPS, 0, 0); // FIXME: this cause the bottom flashing
+  #[cfg(target_os = "windows")]
+  {
+    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
+  }
   screen::SCREEN.write().render(renderer);
   screen::SCREEN.write().clear();
 }

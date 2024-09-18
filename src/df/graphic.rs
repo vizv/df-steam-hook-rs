@@ -27,6 +27,9 @@ pub struct ColorInfo {
   pub screen_color_r: u8,
   pub screen_color_g: u8,
   pub screen_color_b: u8,
+  pub screen_color_br: u8,
+  pub screen_color_bg: u8,
+  pub screen_color_bb: u8,
 }
 
 pub fn deref_color_info(addr: usize) -> ColorInfo {
@@ -39,24 +42,35 @@ pub fn set_color_info(addr: usize, color_info: &ColorInfo) {
   unsafe { ptr::copy_nonoverlapping(color_info, p, 1) };
 }
 
-pub fn deref_color(addr: usize) -> common::Color {
+pub fn deref_color(addr: usize) -> (common::Color, common::Color) {
+  let info = deref_color_info(addr);
   let ColorInfo {
     use_old_16_colors,
     screenf,
+    screenb,
     screenbright,
     screen_color_r: r,
     screen_color_g: g,
     screen_color_b: b,
-    ..
-  } = deref_color_info(addr);
+    screen_color_br: br,
+    screen_color_bg: bg,
+    screen_color_bb: bb,
+  } = info;
+  // FIXME: use screentexpos_lower to determine the transparent background
 
-  if use_old_16_colors {
+  let colors = if use_old_16_colors {
     let fg = (screenf + if screenbright { 8 } else { 0 }) as usize;
+    let bg = (screenb + if screenbright { 8 } else { 0 }) as usize;
     let uccolor_base = addr + offsets::GRAPHIC_SCREENF + offsets::GRAPHIC_SCREENF_UCCOLOR;
-    common::Color::at(uccolor_base + fg * 3)
+    (
+      common::Color::at(uccolor_base + fg * 3),
+      common::Color::at(uccolor_base + bg * 3),
+    )
   } else {
-    common::Color::rgb(r, g, b)
-  }
+    (common::Color::rgb(r, g, b), common::Color::rgb(br, bg, bb))
+  };
+
+  colors
 }
 
 pub fn get_uccolor(addr: usize, color: enums::CursesColor) -> common::Color {

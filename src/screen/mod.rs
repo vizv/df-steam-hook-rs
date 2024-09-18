@@ -75,17 +75,17 @@ impl Screen {
     let (surface_ptr, width) = match self.prev.get(&key) {
       Some((ptr, width)) => (ptr.to_owned() as *mut sdl::SDL_Surface, width.to_owned()),
       None => {
-        let Data {
-          str,
-          color: df::common::Color { r, g, b },
-        } = data;
+        let Data { str, fg, bg } = data;
+        let bg = if bg.r == 0 && bg.g == 0 && bg.b == 0 || bg.r == 160 && bg.g == 160 && bg.b == 160 {
+          None
+        } else {
+          Some(bg)
+        };
 
         let mut font = FONT.write();
-        let (ptr, width) = font.render(str);
+        let (ptr, width) = font.render(str, fg, bg);
         let ptr = ptr as *mut sdl::SDL_Surface;
         mem::drop(font);
-
-        unsafe { sdl::SDL_SetSurfaceColorMod(ptr, r, g, b) };
 
         (ptr, width)
       }
@@ -94,9 +94,10 @@ impl Screen {
 
     // render on canvas
     unsafe {
-      let mut rect = Rect::new(x, y, width, CJK_FONT_SIZE);
+      let mut srcrect = Rect::new(0, 0, width, CJK_FONT_SIZE);
+      let mut dstrect = Rect::new(x, y, width, CJK_FONT_SIZE);
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-      sdl::SDL_UpperBlit(surface_ptr, ptr::null(), canvas, rect.raw_mut());
+      sdl::SDL_UpperBlit(surface_ptr, srcrect.raw_mut(), canvas, dstrect.raw_mut());
     };
 
     (width as f32 / CANVAS_FONT_WIDTH as f32).ceil() as usize
