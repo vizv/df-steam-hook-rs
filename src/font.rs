@@ -80,25 +80,35 @@ impl Font {
     }
   }
 
-  pub fn render(&mut self, string: String) -> (usize, u32) {
+  pub fn render(&mut self, string: String, fg: df::common::Color, bg: Option<df::common::Color>) -> (usize, u32) {
     let width = CJK_FONT_SIZE * string.chars().count() as u32;
     let height = CJK_FONT_SIZE;
     let mut x = 0;
-    let surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
+    let text_surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
     for ch in string.chars() {
       let (surface_ptr, is_curses) = self.get(ch);
       let glyph_surface = surface_ptr as *mut sdl::SDL_Surface;
       let w = if is_curses { CURSES_FONT_WIDTH } else { CJK_FONT_SIZE };
       let h = CJK_FONT_SIZE;
       let mut rect = Rect::new(x, 0, w, h);
-      unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), surface.raw(), rect.raw_mut()) };
+      unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), text_surface.raw(), rect.raw_mut()) };
       x += w as i32;
     }
+    let df::common::Color { r, g, b } = fg;
+    unsafe { sdl::SDL_SetSurfaceColorMod(text_surface.raw(), r, g, b) };
+
+    let width = x as u32;
+    let surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
+    if let Some(df::common::Color { r, g, b }) = bg {
+      let bc = sdl2::pixels::Color::RGB(r, g, b).to_u32(&surface.pixel_format());
+      unsafe { sdl::SDL_FillRect(surface.raw(), ptr::null(), bc) };
+    }
+    unsafe { sdl::SDL_UpperBlit(text_surface.raw(), ptr::null(), surface.raw(), ptr::null_mut()) };
 
     let surface_ptr = surface.raw() as usize;
     mem::forget(surface);
 
-    return (surface_ptr, x as u32);
+    return (surface_ptr, width);
   }
 
   fn load(path: &str) -> Result<fontdue::Font> {
