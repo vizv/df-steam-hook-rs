@@ -1,5 +1,3 @@
-use crate::offsets;
-
 pub fn backtrace() -> String {
   let mut addresses = Vec::<String>::default();
   backtrace::trace(|frame| {
@@ -11,7 +9,7 @@ pub fn backtrace() -> String {
 
     for (i, address) in vec![ip, fp].into_iter().enumerate() {
       let prefix = if i == 0 { "^" } else { "" };
-      if let Some((module, offset)) = offsets::OFFSETS.resolve(address) {
+      if let Some((module, offset)) = super::offsets::OFFSETS.resolve(address) {
         if let Some(offset) = match module {
           "self" => Some(format!("{prefix}{offset:x}")),
           "libg_src_lib.so" => Some(format!("{prefix}@{offset:x}")),

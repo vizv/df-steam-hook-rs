@@ -60,7 +60,7 @@ impl Offsets {
     offsets
   }
 
-  pub fn get(&self, module: &str, offset: usize) -> usize {
+  pub fn get(&self, (module, offset): &(String, usize)) -> usize {
     if module == "self" {
       return self.self_base + offset;
     }
@@ -69,7 +69,7 @@ impl Offsets {
     if module == "libg_src_lib.so" {
       for (base, (start, len)) in &self.g_src_maps {
         let end = base + len;
-        if offset < end as usize {
+        if *offset < end as usize {
           return offset - *base as usize + *start as usize;
         }
       }

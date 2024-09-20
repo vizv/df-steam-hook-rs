@@ -6,7 +6,6 @@ mod config;
 mod df;
 mod encodings;
 mod font;
-mod global;
 mod hooks;
 mod markup;
 mod offsets;
@@ -23,7 +22,7 @@ extern "C" fn attach() {
   std::env::set_var("RUST_BACKTRACE", "1");
 
   log::info!("dfint 版本: {}", CONFIG.version);
-  log::info!("程序校验和: 0x{:x}", CONFIG.checksum);
+  log::info!("dfint 平台: {}", *offsets::PLATFORM);
   log::info!("字体文件: {:?}", CONFIG.settings.font_file);
 
   match unsafe { hooks::attach_all() } {
