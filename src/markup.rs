@@ -2,11 +2,7 @@ use bitflags::bitflags;
 use raw::{delete_cxxstring, new_cxxstring};
 use std::collections::HashMap;
 
-use crate::{
-  df, encodings,
-  global::{get_key_display, ENABLER, GPS},
-  screen,
-};
+use crate::{df, encodings, screen};
 
 #[static_init::dynamic]
 pub static mut MARKUP: Markup = Default::default();
@@ -253,10 +249,10 @@ impl MarkupTextBox {
               let binding = buff.parse::<i32>().unwrap_or(0);
 
               let key_ptr = new_cxxstring();
-              get_key_display(key_ptr, ENABLER.to_owned(), binding);
+              df::globals::get_key_display(key_ptr, *df::globals::ENABLER, binding);
               ptr.str = df::utils::deref_string(key_ptr);
               delete_cxxstring(key_ptr);
-              ptr.color = df::graphic::get_uccolor(GPS.to_owned(), df::enums::CursesColor::LightGreen);
+              ptr.color = df::graphic::get_uccolor(*df::globals::GPS, df::enums::CursesColor::LightGreen);
 
               text.word.push(ptr);
             }
@@ -488,7 +484,7 @@ impl MarkupTextBox {
     ptr.str = str.clone();
     ptr.link_index = link_index;
 
-    ptr.color = df::graphic::get_uccolor(GPS.to_owned(), color);
+    ptr.color = df::graphic::get_uccolor(*df::globals::GPS, color);
 
     self.word.push(ptr);
     str.clear();

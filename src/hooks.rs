@@ -3,12 +3,11 @@ use raw::{delete_cxxstring, new_cxxstring_n_chars};
 use retour::static_detour;
 
 use crate::df;
-use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
-use crate::offsets::OFFSETS;
+use crate::offsets;
 use crate::screen::{self, SCREEN};
 use crate::translator::TRANSLATOR;
-use crate::CONFIG;
+use crate::utils::OFFSETS;
 #[cfg(target_os = "windows")]
 use crate::{encodings, utils};
 
@@ -16,7 +15,7 @@ use r#macro::hook;
 
 pub unsafe fn attach_all() -> Result<()> {
   attach_addst()?;
-  attach_addst_top()?;
+  attach_top_addst()?;
   attach_addst_flag()?;
 
   #[cfg(target_os = "windows")]
@@ -39,7 +38,7 @@ pub unsafe fn attach_all() -> Result<()> {
 
 pub unsafe fn enable_all() -> Result<()> {
   enable_addst()?;
-  enable_addst_top()?;
+  enable_top_addst()?;
   enable_addst_flag()?;
 
   #[cfg(target_os = "windows")]
@@ -62,7 +61,7 @@ pub unsafe fn enable_all() -> Result<()> {
 
 pub unsafe fn disable_all() -> Result<()> {
   disable_addst()?;
-  disable_addst_top()?;
+  disable_top_addst()?;
   disable_addst_flag()?;
 
   #[cfg(target_os = "windows")]
@@ -181,7 +180,7 @@ impl StringCollector {
 #[hook]
 fn addchar(gps: usize, ch: u8, advance: u8) {
   if ch == 0 || ch == 219 || advance != 1 {
-    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
+    STRING_COLLECTOR.write().push("".into(), *df::globals::GPS, 0, 0);
     unsafe { original!(gps, ch, advance) };
     return;
   }
@@ -194,7 +193,7 @@ fn addchar(gps: usize, ch: u8, advance: u8) {
 #[hook]
 fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
   if ch == 0 || ch == 219 || advance != 1 {
-    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
+    STRING_COLLECTOR.write().push("".into(), *df::globals::GPS, 0, 0);
     unsafe { original!(gps, ch, advance, sflag) };
     return;
   }
@@ -204,12 +203,12 @@ fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
 }
 
 #[hook]
-fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
+fn top_addst(gps: usize, string_address: usize, just: u8, space: i32) {
   let string = df::utils::deref_string(string_address);
 
   // in order to get the correct coord for help markup text,
   // we need to render it here and skip the content from original text.
-  let help = df::game::GameMainInterfaceHelp::borrow_from(GAME.to_owned());
+  let help = df::game::GameMainInterfaceHelp::borrow_from(*df::globals::GAME);
   for text in &help.text {
     if let Some(word) = text.word.first_address() {
       // if we're rendering a help text - rendering its first word
@@ -220,7 +219,7 @@ fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
     }
   }
 
-  let text = screen::Text::new(TRANSLATOR.write().translate("addst_top", &string)).by_graphic(gps);
+  let text = screen::Text::new(TRANSLATOR.write().translate("top_addst", &string)).by_graphic(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -258,7 +257,7 @@ fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, t
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
 
-  if df::graphic::top_in_use(GPS.to_owned()) {
+  if df::graphic::top_in_use(*df::globals::GPS) {
     screen::SCREEN_TOP.write().render(renderer);
     screen::SCREEN_TOP.write().clear();
   }
@@ -267,7 +266,7 @@ fn update_all(renderer: usize) {
 #[hook]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
-  let dim = df::graphic::deref_dim(GPS.to_owned());
+  let dim = df::graphic::deref_dim(*df::globals::GPS);
 
   // hack to render text after the last update_tile in update_all
   if (x != dim.x - 1 || y != dim.y - 1) {
@@ -276,7 +275,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 
   #[cfg(target_os = "windows")]
   {
-    STRING_COLLECTOR.write().push("".into(), *GPS, 0, 0);
+    STRING_COLLECTOR.write().push("".into(), *df::globals::GPS, 0, 0);
   }
   screen::SCREEN.write().render(renderer);
   screen::SCREEN.write().clear();
@@ -302,12 +301,12 @@ fn mtb_set_width(text_address: usize, current_width: i32) {
   let max_y = MARKUP.write().layout(text_address, current_width);
 
   // skip original function for help texts
-  let help = df::game::GameMainInterfaceHelp::borrow_mut_from(GAME.to_owned());
+  let help = df::game::GameMainInterfaceHelp::borrow_mut_from(*df::globals::GAME);
   for text in &mut help.text {
     // if we're rendering a help text
     if text as *const df::game::MarkupTextBox as usize == text_address {
       // adjust the px and py to 0 (was -1 before original function call),
-      // this helps the screen coord is correct for addst_top.
+      // this helps the screen coord is correct for top_addst.
       if let Some(word) = text.word.first_mut::<df::game::MarkupTextWord>() {
         word.px = 0;
         word.py = 0;
@@ -330,7 +329,7 @@ fn render_help_dialog(help_address: usize) {
   let help = df::game::GameMainInterfaceHelp::borrow_mut_at(help_address);
 
   // save end offset of word vector of each text,
-  // and leave only one word in the vector to get screen coord for addst_top.
+  // and leave only one word in the vector to get screen coord for top_addst.
   let mut stored_end = [0; 20];
   for (i, text) in &mut help.text.iter_mut().enumerate() {
     stored_end[i] = text.word.end;

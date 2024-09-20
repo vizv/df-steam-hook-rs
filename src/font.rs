@@ -5,7 +5,6 @@ use std::io::Read;
 use std::{mem, ptr};
 
 use crate::config::CONFIG;
-use crate::global::ENABLER;
 use crate::{df, encodings, utils};
 
 pub const CJK_FONT_SIZE: u32 = 24;
@@ -36,7 +35,7 @@ impl Font {
 
   pub fn get(&mut self, ch: char) -> usize {
     if let Some(code) = encodings::utf8_char_to_ch437_byte(ch) {
-      return df::enabler::deref_curses_surface(ENABLER.to_owned(), code);
+      return df::enabler::deref_curses_surface(*df::globals::ENABLER, code);
     };
 
     if !self.cache.contains_key(&ch) {
@@ -75,7 +74,7 @@ impl Font {
       return surface_ptr;
     } else {
       // fallback to curses space glyph
-      return df::enabler::deref_curses_surface(ENABLER.to_owned(), ' ' as u8);
+      return df::enabler::deref_curses_surface(*df::globals::ENABLER, ' ' as u8);
     }
   }
 

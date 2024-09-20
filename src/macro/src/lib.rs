@@ -93,7 +93,7 @@ pub fn hook(args: TokenStream, input: TokenStream) -> TokenStream {
       (_, _) => attach.replace(
         "target()",
         format!(
-          "std::mem::transmute(OFFSETS.get(CONFIG.offsets.functions.{ident}.0, CONFIG.offsets.functions.{ident}.1))"
+          "std::mem::transmute(OFFSETS.get(offsets::FUNCTIONS.get(\"{ident}\").unwrap()))"
         )
         .as_str(),
       ),
