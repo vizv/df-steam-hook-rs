@@ -77,4 +77,22 @@ impl Offsets {
 
     0
   }
+
+  pub fn resolve(&self, address: usize) -> Option<(&'static str, usize)> {
+    if address < 0xffffffff {
+      return Some(("self", address - self.self_base));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+      for (base, (start, len)) in &self.g_src_maps {
+        let end = start + len;
+        if address >= *start as usize && address < end as usize {
+          return Some(("libg_src_lib.so", address - *start as usize + *base as usize));
+        }
+      }
+    }
+
+    None
+  }
 }
