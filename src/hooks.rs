@@ -186,7 +186,7 @@ fn addchar(gps: usize, ch: u8, advance: u8) {
 #[cfg(target_os = "windows")]
 #[hook]
 fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
-  if ch == 0 || ch == 219 || advance != 1 {
+  if ch == 0 || ch == 219 {
     STRING_COLLECTOR.write().push("".into(), *df::globals::GPS, 0, 0);
     unsafe { original!(gps, ch, advance, sflag) };
     return;
