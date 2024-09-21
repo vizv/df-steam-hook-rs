@@ -5,6 +5,8 @@ use data::MEGA;
 use item_name::translate_item_name;
 use skill_with_level::translate_skill_with_level;
 
+use crate::utils;
+
 mod data;
 mod matcher;
 
@@ -31,7 +33,11 @@ pub struct Translator {
 }
 
 impl Translator {
-  pub fn translate(&mut self, context: &'static str, string: &String) -> &String {
+  pub fn translate<'a>(&'a mut self, context: &'static str, string: &'a String) -> &'a String {
+    if string.starts_with("FPS: ") {
+      return string;
+    }
+
     MEGA.write().load();
 
     let key = StringWithContext { context, string }.key();
@@ -51,11 +57,12 @@ impl Translator {
         string.to_owned()
       };
 
-      // if string == &content {
-      //   log::warn!("missing translation for {context}: {string}");
-      // } else {
-      //   log::debug!("translate for {context}: {string} -> {content}");
-      // }
+      if string == &content {
+        let bt = utils::backtrace();
+        log::warn!("missing translation for {context} @ {bt}: 「{string}」");
+      } else {
+        // log::debug!("translate for {context}: {string} -> {content}");
+      }
       self.cache.insert(key, content);
     }
 
