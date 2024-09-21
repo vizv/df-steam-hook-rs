@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use data::MEGA;
-use interface::translate_interface;
 
 use crate::utils;
 
@@ -14,8 +13,11 @@ mod context;
 mod interface;
 mod item_name;
 mod skill_with_level;
+mod version;
+use interface::translate_interface;
 use item_name::translate_item_name;
 use skill_with_level::translate_skill_with_level;
+use version::translate_version;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct StringWithContext<'a> {
@@ -66,7 +68,9 @@ impl Translator {
     if !self.cache.contains_key(&key) {
       let ctx_opt = context::get_context(vs_opt, bt);
       let lower_string = &string.to_lowercase();
-      let (text, offset) = if let Some(translation_tuple) = translate_interface(vs_opt, ctx_opt, string) {
+      let (text, offset) = if let Some(translated) = translate_version(vs_opt, string) {
+        (translated, 0)
+      } else if let Some(translation_tuple) = translate_interface(vs_opt, ctx_opt, string) {
         translation_tuple
       } else if let Some(translated) = data::HELP.get(string) {
         (translated.to_owned(), 0)
