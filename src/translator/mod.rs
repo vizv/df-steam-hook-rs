@@ -38,7 +38,7 @@ impl<'a> StringWithContext<'a> {
 #[derive(Default)]
 pub struct TranslatedText {
   pub text: String,
-  pub offset: i32,
+  pub horizontal_shift: i32,
 }
 
 #[derive(Default)]
@@ -47,15 +47,13 @@ pub struct Translator {
 }
 
 impl Translator {
-  pub fn translate<'a>(&'a mut self, func: &'static str, string: &'a String) -> (&'a str, i32) {
+  pub fn translate<'a>(&'a mut self, func: &'static str, string: &'a String, bt: &str) -> (&'a str, i32) {
     if string.starts_with("FPS: ") {
       return (string, 0);
     }
 
     MEGA.write().load();
 
-    let bt = utils::backtrace();
-    let bt = bt.as_str();
     let view_opt = utils::get_view();
     let view_opt = view_opt.as_deref();
     let key = StringWithContext {
@@ -68,7 +66,7 @@ impl Translator {
     if !self.cache.contains_key(&key) {
       let location_opt = context::get_context_location(view_opt, bt);
       let lower_string = &string.to_lowercase();
-      let (text, offset) = if let Some(translated) = translate_version(view_opt, string) {
+      let (text, horizontal_shift) = if let Some(translated) = translate_version(view_opt, string) {
         (translated, 0)
       } else if let Some(translation_tuple) = translate_interface(view_opt, location_opt, string) {
         translation_tuple
@@ -90,14 +88,14 @@ impl Translator {
         log::debug!("missing translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n");
       } else {
         log::trace!(
-          "found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n{offset}:\n{text:?}\n"
+          "found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n{horizontal_shift}:\n{text:?}\n"
         );
       }
-      self.cache.insert(key, TranslatedText { text, offset });
+      self.cache.insert(key, TranslatedText { text, horizontal_shift });
     }
 
-    let TranslatedText { text, offset } = self.cache.get(&key).unwrap();
-    (text, *offset)
+    let TranslatedText { text, horizontal_shift } = self.cache.get(&key).unwrap();
+    (text, *horizontal_shift)
   }
 }
 
