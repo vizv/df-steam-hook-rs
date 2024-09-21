@@ -5,7 +5,7 @@ pub fn wildcard_matcher<'a, M, R>(
   wildcard_table: &'a data::WildcardTable,
   match_placeholder: M,
   replace_placeholder: R,
-) -> common::MatchFn
+) -> common::MatchFn<'a>
 where
   M: Fn(&'a str) -> Vec<word::WordMatch<'a>> + 'a,
   R: Fn(String, String) -> String + 'a,

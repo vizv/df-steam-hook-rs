@@ -17,11 +17,11 @@ pub fn install() {
       if keys.contains(&Keycode::F2) && keys.contains(&Keycode::LControl) {
         if hook_enabled {
           hook_enabled = false;
-          log::info!("hooks disabled");
+          log::info!("汉化已禁用");
           let _ = unsafe { hooks::disable_all() };
         } else {
           hook_enabled = true;
-          log::info!("hooks enabled");
+          log::info!("汉化已启用");
           let _ = unsafe { hooks::enable_all() };
         }
       };

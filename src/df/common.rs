@@ -50,6 +50,7 @@ impl Vector {
     }
   }
 
+  #[allow(dead_code)] // FIXME
   pub fn first<T>(&self) -> Option<&'static T> {
     self.first_address().map(|addr| unsafe { &*(addr as *const T) })
   }

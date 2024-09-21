@@ -1,3 +1,4 @@
+#[cfg(target_os = "windows")]
 use std::ptr;
 
 use super::{common, enums, offsets, utils};
@@ -6,6 +7,7 @@ pub fn deref_coord(addr: usize) -> common::Coord<i32> {
   common::Coord::at(addr + offsets::GRAPHIC_SCREENX)
 }
 
+#[cfg(target_os = "windows")]
 pub fn set_coord(addr: usize, coord: &common::Coord<i32>) {
   let p: *mut common::Coord<i32> = (addr + offsets::GRAPHIC_SCREENX) as *mut common::Coord<i32>;
   unsafe { ptr::copy_nonoverlapping(coord, p, 1) };
@@ -31,6 +33,7 @@ pub fn deref_color_info(addr: usize) -> ColorInfo {
   utils::deref(addr + offsets::GRAPHIC_SCREENF)
 }
 
+#[cfg(target_os = "windows")]
 pub fn set_color_info(addr: usize, color_info: &ColorInfo) {
   let p = (addr + offsets::GRAPHIC_SCREENF) as *mut ColorInfo;
   unsafe { ptr::copy_nonoverlapping(color_info, p, 1) };

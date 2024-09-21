@@ -62,15 +62,3 @@ pub fn message_box(title: &str, text: &str, icon: MessageIconType) {
 pub unsafe fn cstr<T>(src: *const T, size: usize) -> Result<&'static str, std::str::Utf8Error> {
   std::ffi::CStr::from_bytes_with_nul_unchecked(std::slice::from_raw_parts(src as *const u8, size)).to_str()
 }
-
-pub fn log_level(level: usize) -> log::LevelFilter {
-  match level {
-    0 => log::LevelFilter::Trace,
-    1 => log::LevelFilter::Debug,
-    2 => log::LevelFilter::Info,
-    3 => log::LevelFilter::Warn,
-    4 => log::LevelFilter::Error,
-    5 => log::LevelFilter::Off,
-    _ => log::LevelFilter::Info,
-  }
-}
