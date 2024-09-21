@@ -78,9 +78,10 @@ pub unsafe fn disable_all() -> Result<()> {
 #[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
+  let bt = utils::backtrace();
   let string = encodings::read_raw_string(string_address);
 
-  let text = screen::Text::new(translator::TRANSLATOR.write().translate("addst", &string)).by_gps(gps);
+  let text = screen::Text::new(translator::TRANSLATOR.write().translate("addst", &string, &bt)).by_gps(gps);
   let width = screen::SCREEN.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -91,10 +92,11 @@ fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
+  let bt = utils::backtrace();
   let string = encodings::read_raw_string(string_address);
 
   let text =
-    screen::Text::new(translator::TRANSLATOR.write().translate("addst_flag", &string)).by_gps(gps).with_sflag(sflag);
+    screen::Text::new(translator::TRANSLATOR.write().translate("addst_flag", &string, &bt)).by_gps(gps).with_sflag(sflag);
   let width = screen::SCREEN.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -137,7 +139,7 @@ impl StringCollector {
 
         let string = encodings::bytes_to_string(&self.chars);
 
-        let text = screen::Text::new(translator::TRANSLATOR.write().translate("string_collector", &string))
+        let text = screen::Text::new(translator::TRANSLATOR.write().translate("string_collector", &string, &self.last_caller))
           .by_gps(gps)
           .with_sflag(self.last_sflag);
         let width = screen::SCREEN.write().add_text(text);
@@ -196,6 +198,7 @@ fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
 
 #[hook]
 fn top_addst(gps: usize, string_address: usize, just: u8, space: i32) {
+  let bt = utils::backtrace();
   let string = encodings::read_raw_string(string_address);
 
   // in order to get the correct coord for help markup text,
@@ -211,7 +214,7 @@ fn top_addst(gps: usize, string_address: usize, just: u8, space: i32) {
     }
   }
 
-  let text = screen::Text::new(translator::TRANSLATOR.write().translate("top_addst", &string)).by_gps(gps);
+  let text = screen::Text::new(translator::TRANSLATOR.write().translate("top_addst", &string, &bt)).by_gps(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -275,6 +278,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 
 #[hook]
 fn mtb_process_string_to_lines(text: usize, string_address: usize) {
+  let bt = utils::backtrace();
   let string = encodings::read_raw_string(string_address);
 
   unsafe { original!(text, string_address) };
@@ -285,7 +289,7 @@ fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  markup::MARKUP.write().add(text, translator::TRANSLATOR.write().translate("addst", &string).0);
+  markup::MARKUP.write().add(text, translator::TRANSLATOR.write().translate("addst", &string, &bt).0);
 }
 
 #[hook]

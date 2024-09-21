@@ -63,7 +63,7 @@ impl Screen {
     let Text {
       coord: df::common::Coord { x, y },
       data,
-      offset,
+      horizontal_shift,
       render,
     } = text;
 
@@ -96,7 +96,7 @@ impl Screen {
     // render on canvas
     unsafe {
       let mut srcrect = Rect::new(0, 0, width, CJK_FONT_SIZE);
-      let mut dstrect = Rect::new(x + offset, y, width, CJK_FONT_SIZE);
+      let mut dstrect = Rect::new(x + horizontal_shift, y, width, CJK_FONT_SIZE);
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
       sdl::SDL_UpperBlit(surface_ptr, srcrect.raw_mut(), canvas, dstrect.raw_mut());
     };
