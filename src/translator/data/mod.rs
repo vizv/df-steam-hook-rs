@@ -37,3 +37,7 @@ pub use materials_templates::MATERIALS_TEMPLATES;
 // mega directory
 mod mega;
 pub use mega::MEGA;
+
+// TODO: remove legacy dictionary completely
+mod legacy;
+pub use legacy::*;

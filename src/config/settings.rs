@@ -5,6 +5,7 @@ pub struct Settings {
   pub log_level: log::LevelFilter,
   pub log_file: String,
   pub font_file: String,
+  pub use_legacy_dictionary: bool,
 }
 
 impl Default for Settings {
@@ -13,6 +14,7 @@ impl Default for Settings {
       log_level: log::LevelFilter::Debug,
       log_file: "./dfint-data/dfint-log.log".into(),
       font_file: "./dfint-data/fonts/NotoSansMonoCJKsc-Bold.otf".into(),
+      use_legacy_dictionary: false,
     }
   }
 }
@@ -41,6 +43,7 @@ impl Settings {
         },
         "LOG_FILE" => settings.log_file = value,
         "FONT_FILE" => settings.font_file = value,
+        "USE_LEGACY_DICTIONARY" => settings.use_legacy_dictionary = value.to_uppercase() == "YES",
         _ => return Err(anyhow!("忽略无效的配置项：{key:?}")),
       }
     }

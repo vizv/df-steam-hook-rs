@@ -63,6 +63,8 @@ impl Translator {
       string,
     }
     .key();
+
+    let mut is_legacy = false;
     if !self.cache.contains_key(&key) {
       let location_opt = context::get_context_location(view_opt, bt);
       let lower_string = &string.to_lowercase();
@@ -80,6 +82,9 @@ impl Translator {
         (translated, 0)
       } else if let Some(translated) = data::MEGA.read().get(lower_string) {
         (translated.to_owned(), 0)
+      } else if let Some(translated) = data::LEGACY.get(lower_string) {
+        is_legacy = true;
+        (translated.to_owned(), 0)
       } else {
         (string.to_owned(), 0)
       };
@@ -87,9 +92,13 @@ impl Translator {
       if string == &text {
         log::debug!("missing translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n");
       } else {
-        log::trace!(
-          "found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n{horizontal_shift}:\n{text:?}\n"
-        );
+        if is_legacy {
+          log::warn!(
+            "use legacy translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n- {string:?}\n+ {text:?}\n"
+          );
+        } else {
+          log::trace!("found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n- {string:?}\n+ {text:?}\n");
+        }
       }
       self.cache.insert(key, TranslatedText { text, horizontal_shift });
     }
