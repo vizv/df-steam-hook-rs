@@ -10,8 +10,6 @@ mod placeholder;
 mod transformer;
 mod rules;
 
-mod contexts;
-pub use contexts::CONTEXTS;
 mod interfaces;
 pub use interfaces::INTERFACES;
 

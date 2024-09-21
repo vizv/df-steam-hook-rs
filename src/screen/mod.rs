@@ -147,17 +147,17 @@ impl Screen {
       dispy_z,
       origin_x,
       origin_y,
-    } = df::renderer::deref_screen_info(renderer);
+    } = df::renderer::borrow_screen_info(renderer);
     let dstrect = Rect::new(
-      origin_x as i32,
-      origin_y as i32,
+      *origin_x as i32,
+      *origin_y as i32,
       (self.dimension.x * dispx_z) as u32,
       (self.dimension.y * dispy_z) as u32,
     );
 
     unsafe {
       let canvas = self.canvas_ptr as *mut sdl::SDL_Surface;
-      let sdl_renderer = df::renderer::deref_sdl_renderer(renderer);
+      let sdl_renderer = df::renderer::read_sdl_renderer(renderer);
       let texture = sdl::SDL_CreateTextureFromSurface(sdl_renderer, canvas);
       sdl::SDL_SetTextureScaleMode(texture, sdl::SDL_ScaleMode::SDL_ScaleModeLinear);
       sdl::SDL_RenderCopy(sdl_renderer, texture, srcrect.raw(), dstrect.raw());

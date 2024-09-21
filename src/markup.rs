@@ -250,9 +250,9 @@ impl MarkupTextBox {
 
               let key_ptr = new_cxxstring();
               df::globals::get_key_display(key_ptr, *df::globals::ENABLER, binding);
-              ptr.str = df::utils::deref_string(key_ptr);
+              ptr.str = encodings::read_raw_string(key_ptr);
               delete_cxxstring(key_ptr);
-              ptr.color = df::graphic::get_uccolor(*df::globals::GPS, df::enums::CursesColor::LightGreen);
+              ptr.color = df::gps::get_uccolor(*df::globals::GPS, df::enums::CursesColor::LightGreen);
 
               text.word.push(ptr);
             }
@@ -484,7 +484,7 @@ impl MarkupTextBox {
     ptr.str = str.clone();
     ptr.link_index = link_index;
 
-    ptr.color = df::graphic::get_uccolor(*df::globals::GPS, color);
+    ptr.color = df::gps::get_uccolor(*df::globals::GPS, color);
 
     self.word.push(ptr);
     str.clear();
@@ -518,7 +518,7 @@ impl Markup {
   pub fn render(&self, gps: usize, address: usize) {
     if let Some(text) = self.items.get(&address) {
       for word in &text.word {
-        let text = screen::Text::new((&word.str, 0)).by_graphic(gps);
+        let text = screen::Text::new((&word.str, 0)).by_gps(gps);
         screen::SCREEN_TOP.write().add_text(text.with_offset(word.x, word.y).with_fg_color(word.color.clone()));
       }
     }

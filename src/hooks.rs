@@ -2,14 +2,7 @@ use anyhow::Result;
 use raw::{delete_cxxstring, new_cxxstring_n_chars};
 use retour::static_detour;
 
-use crate::df;
-use crate::markup::MARKUP;
-use crate::offsets;
-use crate::screen::{self, SCREEN};
-use crate::translator::TRANSLATOR;
-use crate::utils::OFFSETS;
-#[cfg(target_os = "windows")]
-use crate::{encodings, utils};
+use super::{df, encodings, markup, offsets, screen, translator, utils};
 
 use r#macro::hook;
 
@@ -85,9 +78,9 @@ pub unsafe fn disable_all() -> Result<()> {
 #[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
-  let string = df::utils::deref_string(string_address);
+  let string = encodings::read_raw_string(string_address);
 
-  let text = screen::Text::new(TRANSLATOR.write().translate("addst", &string)).by_graphic(gps);
+  let text = screen::Text::new(translator::TRANSLATOR.write().translate("addst", &string)).by_gps(gps);
   let width = screen::SCREEN.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -98,9 +91,10 @@ fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
 #[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
-  let string = df::utils::deref_string(string_address);
+  let string = encodings::read_raw_string(string_address);
 
-  let text = screen::Text::new(TRANSLATOR.write().translate("addst_flag", &string)).by_graphic(gps).with_sflag(sflag);
+  let text =
+    screen::Text::new(translator::TRANSLATOR.write().translate("addst_flag", &string)).by_gps(gps).with_sflag(sflag);
   let width = screen::SCREEN.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -118,7 +112,7 @@ struct StringCollector {
   last_caller: String,
   last_coord: df::common::Coord<i32>,
   last_sflag: u32,
-  last_color_info: df::graphic::ColorInfo,
+  last_color_info: df::gps::ColorInfo,
   chars: Vec<u8>,
 }
 
@@ -129,8 +123,8 @@ impl StringCollector {
       return;
     }
 
-    let mut coord = df::graphic::deref_coord(gps);
-    let color_info = df::graphic::deref_color_info(gps);
+    let mut coord = df::gps::read_coord(gps);
+    let color_info = df::gps::read_color_info(gps);
     if caller == ""
       || coord != self.last_coord
       || caller != self.last_caller
@@ -138,15 +132,13 @@ impl StringCollector {
       || color_info != self.last_color_info
     {
       if self.last_caller != "" && !self.chars.is_empty() {
-        df::graphic::set_coord(gps, &self.last_coord);
-        df::graphic::set_color_info(gps, &self.last_color_info);
+        df::gps::set_coord(gps, &self.last_coord);
+        df::gps::set_color_info(gps, &self.last_color_info);
 
-        let result: Vec<u8> =
-          self.chars.iter().flat_map(|&byte| encodings::cp437_byte_to_utf8_char(byte).to_owned()).collect();
-        let string = String::from_utf8_lossy(&result).into_owned();
+        let string = encodings::bytes_to_string(&self.chars);
 
-        let text = screen::Text::new(TRANSLATOR.write().translate("string_collector", &string))
-          .by_graphic(gps)
+        let text = screen::Text::new(translator::TRANSLATOR.write().translate("string_collector", &string))
+          .by_gps(gps)
           .with_sflag(self.last_sflag);
         let width = screen::SCREEN.write().add_text(text);
 
@@ -155,10 +147,10 @@ impl StringCollector {
         }
 
         if coord == self.last_coord {
-          coord = df::graphic::deref_coord(gps);
+          coord = df::gps::read_coord(gps);
         }
-        df::graphic::set_coord(gps, &coord);
-        df::graphic::set_color_info(gps, &color_info);
+        df::gps::set_coord(gps, &coord);
+        df::gps::set_color_info(gps, &color_info);
         self.chars.clear();
       }
     }
@@ -204,22 +196,22 @@ fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
 
 #[hook]
 fn top_addst(gps: usize, string_address: usize, just: u8, space: i32) {
-  let string = df::utils::deref_string(string_address);
+  let string = encodings::read_raw_string(string_address);
 
   // in order to get the correct coord for help markup text,
   // we need to render it here and skip the content from original text.
-  let help = df::game::GameMainInterfaceHelp::borrow_from(*df::globals::GAME);
+  let help = df::game::GameMainInterfaceHelp::borrow(*df::globals::GAME);
   for text in &help.text {
     if let Some(word) = text.word.first_address() {
       // if we're rendering a help text - rendering its first word
       if string_address == word.to_owned() {
-        MARKUP.write().render(gps, text.ptr());
+        markup::MARKUP.write().render(gps, raw::ptr(text));
         return;
       }
     }
   }
 
-  let text = screen::Text::new(TRANSLATOR.write().translate("top_addst", &string)).by_graphic(gps);
+  let text = screen::Text::new(translator::TRANSLATOR.write().translate("top_addst", &string)).by_gps(gps);
   let width = screen::SCREEN_TOP.write().add_text(text);
 
   let dummy_ptr = new_cxxstring_n_chars(width, ' ' as u8);
@@ -232,7 +224,7 @@ fn draw_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
   unsafe { original!(texpos, sy, sx, ey, ex, flag) };
   if flag & 1 == 1 {
     let cover = screen::Cover::new(sx, sy, ex, ey);
-    SCREEN.write().add_cover(cover);
+    screen::SCREEN.write().add_cover(cover);
   }
 }
 
@@ -241,7 +233,7 @@ fn draw_horizontal_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, 
   unsafe { original!(texpos, sy, sx, ey, ex, flag) };
   if flag & 1 == 1 {
     let cover = screen::Cover::new(sx, sy, ex, ey);
-    SCREEN.write().add_cover(cover);
+    screen::SCREEN.write().add_cover(cover);
   }
 }
 
@@ -257,7 +249,7 @@ fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, t
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
 
-  if df::graphic::top_in_use(*df::globals::GPS) {
+  if df::gps::top_in_use(*df::globals::GPS) {
     screen::SCREEN_TOP.write().render(renderer);
     screen::SCREEN_TOP.write().clear();
   }
@@ -266,7 +258,7 @@ fn update_all(renderer: usize) {
 #[hook]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
-  let dim = df::graphic::deref_dim(*df::globals::GPS);
+  let dim = df::gps::borrow_dim(*df::globals::GPS);
 
   // hack to render text after the last update_tile in update_all
   if (x != dim.x - 1 || y != dim.y - 1) {
@@ -283,7 +275,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
 
 #[hook]
 fn mtb_process_string_to_lines(text: usize, string_address: usize) {
-  let string = df::utils::deref_string(string_address);
+  let string = encodings::read_raw_string(string_address);
 
   unsafe { original!(text, string_address) };
 
@@ -293,15 +285,15 @@ fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string).0);
+  markup::MARKUP.write().add(text, translator::TRANSLATOR.write().translate("addst", &string).0);
 }
 
 #[hook]
 fn mtb_set_width(text_address: usize, current_width: i32) {
-  let max_y = MARKUP.write().layout(text_address, current_width);
+  let max_y = markup::MARKUP.write().layout(text_address, current_width);
 
   // skip original function for help texts
-  let help = df::game::GameMainInterfaceHelp::borrow_mut_from(*df::globals::GAME);
+  let help = df::game::GameMainInterfaceHelp::borrow_mut(*df::globals::GAME);
   for text in &mut help.text {
     // if we're rendering a help text
     if text as *const df::game::MarkupTextBox as usize == text_address {
@@ -326,7 +318,7 @@ fn mtb_set_width(text_address: usize, current_width: i32) {
 
 #[hook]
 fn render_help_dialog(help_address: usize) {
-  let help = df::game::GameMainInterfaceHelp::borrow_mut_at(help_address);
+  let help = raw::as_ref_mut::<df::game::GameMainInterfaceHelp>(help_address);
 
   // save end offset of word vector of each text,
   // and leave only one word in the vector to get screen coord for top_addst.

@@ -84,18 +84,15 @@ pub fn hook(args: TokenStream, input: TokenStream) -> TokenStream {
     attach = match (args.offset, args.module) {
       (o, m) if m == "self" && o > 0 => attach.replace(
         "target()",
-        format!("std::mem::transmute(OFFSETS.get({m:?}, {o}))").as_str(),
+        format!("std::mem::transmute(utils::OFFSETS.get({m:?}, {o}))").as_str(),
       ),
       (o, m) if o > 0 => attach.replace(
         "target()",
-        format!("std::mem::transmute(OFFSETS.get({m}, {o}))").as_str(),
+        format!("std::mem::transmute(utils::OFFSETS.get({m}, {o}))").as_str(),
       ),
       (_, _) => attach.replace(
         "target()",
-        format!(
-          "std::mem::transmute(OFFSETS.get(offsets::FUNCTIONS.get(\"{ident}\").unwrap()))"
-        )
-        .as_str(),
+        format!("std::mem::transmute(utils::OFFSETS.get(offsets::FUNCTIONS.get(\"{ident}\").unwrap()))").as_str(),
       ),
     };
 
