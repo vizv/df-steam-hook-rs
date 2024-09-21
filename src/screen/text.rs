@@ -25,19 +25,19 @@ impl Text {
     self
   }
 
-  pub fn by_graphic(self, gps: usize) -> Self {
-    self.color_by_graphic(gps).coord_by_graphic(gps)
+  pub fn by_gps(self, gps: usize) -> Self {
+    self.color_by_gps(gps).coord_by_gps(gps)
   }
 
-  pub fn color_by_graphic(mut self, gps: usize) -> Self {
-    let colors = df::graphic::deref_color(gps);
+  pub fn color_by_gps(mut self, gps: usize) -> Self {
+    let colors = df::gps::read_colors(gps);
     self.data = self.data.with_fg_color(colors.0);
     self.data = self.data.with_bg_color(colors.1);
     self
   }
 
-  pub fn coord_by_graphic(self, gps: usize) -> Self {
-    let mut coord = df::graphic::deref_coord(gps);
+  pub fn coord_by_gps(self, gps: usize) -> Self {
+    let mut coord = df::gps::read_coord(gps);
     coord.x *= constants::CANVAS_FONT_WIDTH;
     coord.y *= constants::CANVAS_FONT_HEIGHT;
     self.by_coord(coord)

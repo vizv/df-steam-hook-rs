@@ -6,7 +6,7 @@ pub static PLATFORM: String = {
   let mut err_details = vec![format!("系统：{os}")];
 
   let mut checksum_opt: Option<u32> = None;
-  if let Some(checksums) = super::checksum::CHECKSUMS.get(os) {
+  if let Some(checksums) = super::checksums::CHECKSUMS.get(os) {
     #[cfg(target_os = "linux")]
     {
       const PATH_EXE: &'static str = "./dwarfort";

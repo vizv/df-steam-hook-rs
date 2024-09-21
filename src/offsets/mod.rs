@@ -1,6 +1,6 @@
 mod types;
 
-mod checksum;
+mod checksums;
 mod platform;
 pub use platform::*;
 
@@ -12,3 +12,8 @@ pub use globals::*;
 
 mod fields;
 pub use fields::*;
+
+pub mod vtables;
+
+mod contexts;
+pub use contexts::*;

@@ -23,7 +23,7 @@ use version::translate_version;
 struct StringWithContext<'a> {
   pub func: &'static str,
   pub bt: &'a str,
-  pub vs_opt: Option<&'a str>,
+  pub view_opt: Option<&'a str>,
   pub string: &'a str,
 }
 
@@ -56,21 +56,21 @@ impl Translator {
 
     let bt = utils::backtrace();
     let bt = bt.as_str();
-    let vs_opt = utils::get_viewscreen();
-    let vs_opt = vs_opt.as_deref();
+    let view_opt = utils::get_view();
+    let view_opt = view_opt.as_deref();
     let key = StringWithContext {
       func,
       bt,
-      vs_opt,
+      view_opt,
       string,
     }
     .key();
     if !self.cache.contains_key(&key) {
-      let ctx_opt = context::get_context(vs_opt, bt);
+      let location_opt = context::get_context_location(view_opt, bt);
       let lower_string = &string.to_lowercase();
-      let (text, offset) = if let Some(translated) = translate_version(vs_opt, string) {
+      let (text, offset) = if let Some(translated) = translate_version(view_opt, string) {
         (translated, 0)
-      } else if let Some(translation_tuple) = translate_interface(vs_opt, ctx_opt, string) {
+      } else if let Some(translation_tuple) = translate_interface(view_opt, location_opt, string) {
         translation_tuple
       } else if let Some(translated) = data::HELP.get(string) {
         (translated.to_owned(), 0)
@@ -87,9 +87,11 @@ impl Translator {
       };
 
       if string == &text {
-        log::debug!("missing translation for {func}:\n{vs_opt:?}/{ctx_opt:?} @ {bt}:\n{string:?}\n");
+        log::debug!("missing translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n");
       } else {
-        log::trace!("found translation for {func}:\n{vs_opt:?}/{ctx_opt:?} @ {bt}:\n{string:?}\n{offset}:\n{text:?}\n");
+        log::trace!(
+          "found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n{string:?}\n{offset}:\n{text:?}\n"
+        );
       }
       self.cache.insert(key, TranslatedText { text, offset });
     }

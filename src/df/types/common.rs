@@ -1,5 +1,3 @@
-use super::utils;
-
 #[repr(C)]
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Coord<T> {
@@ -8,8 +6,12 @@ pub struct Coord<T> {
 }
 
 impl<T> Coord<T> {
-  pub fn at(addr: usize) -> Self {
-    utils::deref(addr)
+  pub fn read(addr: usize) -> Self {
+    raw::read(addr)
+  }
+
+  pub fn borrow(addr: usize) -> &'static Self {
+    raw::as_ref(addr)
   }
 }
 
@@ -24,8 +26,8 @@ pub struct Color {
 }
 
 impl Color {
-  pub fn at(addr: usize) -> Self {
-    utils::deref(addr)
+  pub fn read(addr: usize) -> Self {
+    raw::read(addr)
   }
 
   pub fn rgb(r: u8, g: u8, b: u8) -> Self {
@@ -48,11 +50,6 @@ impl Vector {
     } else {
       Some(unsafe { *(self.begin as *const usize) })
     }
-  }
-
-  #[allow(dead_code)] // FIXME
-  pub fn first<T>(&self) -> Option<&'static T> {
-    self.first_address().map(|addr| unsafe { &*(addr as *const T) })
   }
 
   pub fn first_mut<T>(&self) -> Option<&'static mut T> {
