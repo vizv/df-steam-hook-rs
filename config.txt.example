@@ -1,0 +1,8 @@
+日志级别: 可选值 Trace - 追踪, Debug - 调试, Info - 信息, Warn - 警告, Error - 错误, Off - 关闭日志
+[LOG_LEVEL:Debug]
+
+日志文件: 日志文件路径
+[LOG_FILE:dfint-data/dfint-log.log]
+
+字体文件：TTF/OTF 文件路径
+[FONT_FILE:dfint-data/fonts/NotoSansMonoCJKsc-Bold.otf]

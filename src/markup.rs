@@ -3,7 +3,7 @@ use raw::{delete_cxxstring, new_cxxstring};
 use std::collections::HashMap;
 
 use crate::{
-  df, encodings, font,
+  df, encodings,
   global::{get_key_display, ENABLER, GPS},
   screen,
 };
@@ -56,7 +56,7 @@ struct MarkupTextBox {
 
 impl MarkupTextBox {
   // See DFHack: library/modules/Gui.cpp - void Gui::MTB_parse(df::markup_text_boxst *mtb, string parse_text)
-  pub fn parse(content: &String) -> Self {
+  pub fn parse(content: &str) -> Self {
     let mut text: MarkupTextBox = Default::default();
 
     let chars = content.chars().collect::<Vec<char>>();
@@ -313,7 +313,7 @@ impl MarkupTextBox {
         let ch = if char_token == '\0' { chars[i] } else { char_token };
 
         // flush if the next character is CJK character
-        if encodings::cjk::is_cjk(ch) && !encodings::cjk::is_cjk_punctuation(ch) {
+        if encodings::cjk::is_cjk(ch) && !encodings::is_cjk_punctuation(ch) {
           text.insert(&mut str, link_index, color);
         }
 
@@ -321,7 +321,7 @@ impl MarkupTextBox {
           // flush the previous string if last character is CJK character
           if str.len() > 0 {
             let last_ch = str.chars().last().unwrap();
-            if encodings::cjk::is_cjk(last_ch) && !encodings::cjk::is_cjk_punctuation(ch) {
+            if encodings::cjk::is_cjk(last_ch) && !encodings::is_cjk_punctuation(ch) {
               text.insert(&mut str, link_index, color);
             }
           }
@@ -399,7 +399,7 @@ impl MarkupTextBox {
         continue;
       }
 
-      let word_width = cur_word.str.chars().map(|ch| font::get_width(ch) as i32).sum();
+      let word_width = encodings::string_width_in_pixels(&cur_word.str) as i32;
       if remain_width < word_width {
         remain_width = width_in_pixels;
         x_val = 0;
@@ -409,7 +409,9 @@ impl MarkupTextBox {
       if let Some(next_word) = iter.peek() {
         if next_word.str.chars().count() == 1 {
           let next_char = next_word.str.chars().next().unwrap();
-          if x_val > 0 && remain_width <= (font::get_width(next_char) as i32 + screen::CANVAS_FONT_WIDTH) {
+          if x_val > 0
+            && remain_width <= (encodings::char_width_in_pixels(next_char) as i32 + screen::CANVAS_FONT_WIDTH)
+          {
             match next_char {
               '.' | ',' | '?' | '!' => {
                 remain_width = width_in_pixels;
@@ -501,7 +503,7 @@ pub struct Markup {
 }
 
 impl Markup {
-  pub fn add(&mut self, address: usize, content: &String) {
+  pub fn add(&mut self, address: usize, content: &str) {
     let text = MarkupTextBox::parse(content);
 
     self.items.insert(address, text);
@@ -520,7 +522,7 @@ impl Markup {
   pub fn render(&self, gps: usize, address: usize) {
     if let Some(text) = self.items.get(&address) {
       for word in &text.word {
-        let text = screen::Text::new(&word.str).by_graphic(gps);
+        let text = screen::Text::new((&word.str, 0)).by_graphic(gps);
         screen::SCREEN_TOP.write().add_text(text.with_offset(word.x, word.y).with_fg_color(word.color.clone()));
       }
     }

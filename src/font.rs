@@ -8,7 +8,6 @@ use crate::config::CONFIG;
 use crate::global::ENABLER;
 use crate::{df, encodings, utils};
 
-pub const CURSES_FONT_WIDTH: u32 = 16;
 pub const CJK_FONT_SIZE: u32 = 24;
 pub const BUF_SIZE: isize = (CJK_FONT_SIZE * CJK_FONT_SIZE) as isize;
 
@@ -35,9 +34,9 @@ impl Font {
     }
   }
 
-  pub fn get(&mut self, ch: char) -> (usize, bool) {
-    if let Some(&code) = encodings::cp437::UTF8_CHAR_TO_CP437.get(&ch) {
-      return (df::enabler::deref_curses_surface(ENABLER.to_owned(), code), true);
+  pub fn get(&mut self, ch: char) -> usize {
+    if let Some(code) = encodings::utf8_char_to_ch437_byte(ch) {
+      return df::enabler::deref_curses_surface(ENABLER.to_owned(), code);
     };
 
     if !self.cache.contains_key(&ch) {
@@ -72,23 +71,23 @@ impl Font {
       }
     }
 
-    if let Some(surface_ptr) = self.cache.get(&ch) {
-      return (surface_ptr.to_owned(), false);
+    if let Some(&surface_ptr) = self.cache.get(&ch) {
+      return surface_ptr;
     } else {
       // fallback to curses space glyph
-      return (df::enabler::deref_curses_surface(ENABLER.to_owned(), ' ' as u8), true);
+      return df::enabler::deref_curses_surface(ENABLER.to_owned(), ' ' as u8);
     }
   }
 
   pub fn render(&mut self, string: String, fg: df::common::Color, bg: Option<df::common::Color>) -> (usize, u32) {
-    let width = CJK_FONT_SIZE * string.chars().count() as u32;
+    let width = encodings::string_width_in_pixels(&string);
     let height = CJK_FONT_SIZE;
     let mut x = 0;
     let text_surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
     for ch in string.chars() {
-      let (surface_ptr, is_curses) = self.get(ch);
+      let surface_ptr = self.get(ch);
       let glyph_surface = surface_ptr as *mut sdl::SDL_Surface;
-      let w = if is_curses { CURSES_FONT_WIDTH } else { CJK_FONT_SIZE };
+      let w = encodings::char_width_in_pixels(ch);
       let h = CJK_FONT_SIZE;
       let mut rect = Rect::new(x, 0, w, h);
       unsafe { sdl::SDL_UpperBlitScaled(glyph_surface, ptr::null(), text_surface.raw(), rect.raw_mut()) };
@@ -97,7 +96,6 @@ impl Font {
     let df::common::Color { r, g, b } = fg;
     unsafe { sdl::SDL_SetSurfaceColorMod(text_surface.raw(), r, g, b) };
 
-    let width = x as u32;
     let surface = Surface::new(width, height, PixelFormatEnum::RGBA32).unwrap();
     if let Some(df::common::Color { r, g, b }) = bg {
       let bc = sdl2::pixels::Color::RGB(r, g, b).to_u32(&surface.pixel_format());
@@ -117,13 +115,5 @@ impl Font {
     file.read_to_end(&mut data)?;
 
     fontdue::Font::from_bytes(data, fontdue::FontSettings::default()).map_err(|err| anyhow::anyhow!(err))
-  }
-}
-
-pub fn get_width(ch: char) -> u32 {
-  if encodings::cjk::is_cjk(ch) {
-    CJK_FONT_SIZE
-  } else {
-    CURSES_FONT_WIDTH
   }
 }

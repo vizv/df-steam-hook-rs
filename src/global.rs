@@ -12,6 +12,9 @@ pub static GAME: usize = OFFSETS.get(CONFIG.offsets.globals.game.0, CONFIG.offse
 #[static_init::dynamic]
 pub static GPS: usize = OFFSETS.get(CONFIG.offsets.globals.gps.0, CONFIG.offsets.globals.gps.1);
 
+#[static_init::dynamic]
+pub static GVIEW: usize = OFFSETS.get(CONFIG.offsets.globals.gview.0, CONFIG.offsets.globals.gview.1);
+
 #[cfg(target_os = "linux")]
 pub fn get_key_display(str_ptr: usize, enabler: usize, binding: i32) {
   let get_key_display_impl: fn(usize, usize, i32) = unsafe {

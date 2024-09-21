@@ -2,21 +2,27 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use data::MEGA;
-use item_name::translate_item_name;
-use skill_with_level::translate_skill_with_level;
+use interface::translate_interface;
 
 use crate::utils;
 
 mod data;
 mod matcher;
 
+mod context;
+
+mod interface;
 mod item_name;
 mod skill_with_level;
+use item_name::translate_item_name;
+use skill_with_level::translate_skill_with_level;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct StringWithContext<'a> {
-  pub context: &'static str,
-  pub string: &'a String,
+  pub func: &'static str,
+  pub bt: &'a str,
+  pub vs_opt: Option<&'a str>,
+  pub string: &'a str,
 }
 
 impl<'a> StringWithContext<'a> {
@@ -28,45 +34,64 @@ impl<'a> StringWithContext<'a> {
 }
 
 #[derive(Default)]
+pub struct TranslatedText {
+  pub text: String,
+  pub offset: i32,
+}
+
+#[derive(Default)]
 pub struct Translator {
-  cache: HashMap<u64, String>,
+  cache: HashMap<u64, TranslatedText>,
 }
 
 impl Translator {
-  pub fn translate<'a>(&'a mut self, context: &'static str, string: &'a String) -> &'a String {
+  pub fn translate<'a>(&'a mut self, func: &'static str, string: &'a String) -> (&'a str, i32) {
     if string.starts_with("FPS: ") {
-      return string;
+      return (string, 0);
     }
 
     MEGA.write().load();
 
-    let key = StringWithContext { context, string }.key();
+    let bt = utils::backtrace();
+    let bt = bt.as_str();
+    let vs_opt = utils::get_viewscreen();
+    let vs_opt = vs_opt.as_deref();
+    let key = StringWithContext {
+      func,
+      bt,
+      vs_opt,
+      string,
+    }
+    .key();
     if !self.cache.contains_key(&key) {
+      let ctx_opt = context::get_context(vs_opt, bt);
       let lower_string = &string.to_lowercase();
-      let content = if let Some(translated) = data::HELP.get(string) {
-        translated.to_owned()
+      let (text, offset) = if let Some(translation_tuple) = translate_interface(vs_opt, ctx_opt, string) {
+        translation_tuple
+      } else if let Some(translated) = data::HELP.get(string) {
+        (translated.to_owned(), 0)
       } else if let Some(translated) = translate_skill_with_level(lower_string) {
-        translated
+        (translated, 0)
       } else if let Some(translated) = translate_item_name(lower_string) {
-        translated
+        (translated, 0)
       } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
-        translated
+        (translated, 0)
       } else if let Some(translated) = data::MEGA.read().get(lower_string) {
-        translated.to_owned()
+        (translated.to_owned(), 0)
       } else {
-        string.to_owned()
+        (string.to_owned(), 0)
       };
 
-      if string == &content {
-        let bt = utils::backtrace();
-        log::warn!("missing translation for {context} @ {bt}: 「{string}」");
+      if string == &text {
+        log::debug!("missing translation for {func}:\n{vs_opt:?}/{ctx_opt:?} @ {bt}:\n{string:?}\n");
       } else {
-        // log::debug!("translate for {context}: {string} -> {content}");
+        log::trace!("found translation for {func}:\n{vs_opt:?}/{ctx_opt:?} @ {bt}:\n{string:?}\n{offset}:\n{text:?}\n");
       }
-      self.cache.insert(key, content);
+      self.cache.insert(key, TranslatedText { text, offset });
     }
 
-    self.cache.get(&key).unwrap()
+    let TranslatedText { text, offset } = self.cache.get(&key).unwrap();
+    (text, *offset)
   }
 }
 

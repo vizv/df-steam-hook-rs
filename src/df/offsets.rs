@@ -23,3 +23,6 @@ pub const RENDERER_SDL_RENDERER: usize = 0x108;
 pub const RENDERER_DISPX_Z: usize = 0x160;
 #[cfg(target_os = "windows")]
 pub const RENDERER_DISPX_Z: usize = 0x168;
+
+pub const GVIEW_VIEW: usize = 0x8; // TODO: check this on Windows
+pub const VIEWSCREEN_CHILD: usize = 0x8; // TODO: check this on Windows
