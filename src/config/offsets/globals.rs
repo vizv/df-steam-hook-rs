@@ -1,6 +1,5 @@
 use super::offset;
 
-#[derive(Debug, Default)]
 pub struct Globals {
   pub enabler: offset::OffsetTuple,
   pub game: offset::OffsetTuple,

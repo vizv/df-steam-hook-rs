@@ -119,7 +119,7 @@ fn get_caller_addr() -> usize {
     depth > 0
   });
 
-  let module = *utils::MODULE;
+  let module = OFFSETS.self_base;
   let ret = address - module;
 
   ret

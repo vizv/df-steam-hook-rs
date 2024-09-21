@@ -25,14 +25,10 @@ impl Font {
     Self {
       font: match Font::load(path) {
         Ok(value) => value,
-        Err(_) => {
-          log::error!("unable to load font {path}");
-          utils::message_box(
-            "dfint hook error",
-            format!("Unable to load font {path}").as_str(),
-            utils::MessageIconType::Warning,
-          );
-          panic!("unable to load font {path}")
+        Err(message) => {
+          let message = &format!("加载字体文件失败：{message}");
+          utils::show_error_dialog(&message);
+          panic!("{}", message);
         }
       },
       cache: Default::default(),

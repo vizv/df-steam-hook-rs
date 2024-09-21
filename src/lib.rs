@@ -3,7 +3,6 @@
 #![feature(vec_into_raw_parts)]
 
 mod config;
-mod constants;
 mod df;
 mod encodings;
 mod font;
@@ -22,8 +21,6 @@ use crate::config::CONFIG;
 #[no_mangle]
 extern "C" fn attach() {
   std::env::set_var("RUST_BACKTRACE", "1");
-  // simple_logging::log_to_file(&CONFIG.settings.log_file, utils::log_level(CONFIG.settings.log_level)).unwrap();
-  simple_logging::log_to_file(&CONFIG.settings.log_file, CONFIG.settings.log_level).unwrap();
 
   log::info!("dfint 版本: {}", CONFIG.version);
   log::info!("程序校验和: 0x{:x}", CONFIG.checksum);
@@ -33,7 +30,7 @@ extern "C" fn attach() {
     Ok(_) => log::debug!("汉化已启用"),
     Err(err) => {
       log::error!("unable to attach hooks, {:?}", err);
-      utils::message_box("dfint 错误", "无法启用汉化", utils::MessageIconType::Error);
+      utils::show_error_dialog("无法启用汉化");
       return;
     }
   };

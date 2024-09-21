@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use std::io::Read;
 
-#[derive(Debug)]
 pub struct Settings {
   pub log_level: log::LevelFilter,
   pub log_file: String,
@@ -21,6 +20,7 @@ impl Default for Settings {
 impl Settings {
   pub fn load() -> Result<Self> {
     let mut settings = Self::default();
+    simple_logging::log_to_file(&settings.log_file, settings.log_level).unwrap();
 
     let mut file = std::fs::File::open("./dfint-data/config.txt")?;
     let mut contents: Vec<u8> = Vec::new();
@@ -44,6 +44,7 @@ impl Settings {
         _ => return Err(anyhow!("忽略无效的配置项：{key:?}")),
       }
     }
+    simple_logging::log_to_file(&settings.log_file, settings.log_level).unwrap();
 
     Ok(settings)
   }
