@@ -89,7 +89,7 @@ impl Offsets {
       for (base, (start, len)) in &self.g_src_maps {
         let end = start + len;
         if address >= *start as usize && address < end as usize {
-          return Some(("libg_src_lib.so", address - *start as usize + *base as usize));
+          return Some(("libg_src_lib.so", address - *start as usize + *base as usize + 0x100000));
         }
       }
     }

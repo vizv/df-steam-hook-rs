@@ -1,7 +1,7 @@
 use super::cp437;
 
 pub fn is_cjk(ch: char) -> bool {
-  !cp437::UTF8_CHAR_TO_CP437.contains_key(&ch)
+  cp437::utf8_char_to_ch437_byte(ch).is_none()
 }
 
 pub fn is_cjk_punctuation(ch: char) -> bool {

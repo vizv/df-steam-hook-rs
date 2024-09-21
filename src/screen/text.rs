@@ -7,13 +7,15 @@ pub struct Text {
   pub coord: df::common::Coord<i32>,
   pub data: data::Data,
   pub render: bool,
+  pub offset: i32,
 }
 
 impl Text {
-  pub fn new(content: &String) -> Self {
+  pub fn new((content, offset): (&str, i32)) -> Self {
     Self {
       coord: Default::default(),
       data: data::Data::new(content.to_owned()),
+      offset,
       render: true,
     }
   }

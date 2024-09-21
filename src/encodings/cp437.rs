@@ -1,5 +1,13 @@
 use std::collections::HashMap;
 
+pub fn cp437_byte_to_utf8_char(byte: u8) -> &'static [u8] {
+  &CP437_TO_UTF8_BYTES[byte as usize]
+}
+
+pub fn utf8_char_to_ch437_byte(ch: char) -> Option<u8> {
+  UTF8_CHAR_TO_CP437.get(&ch).copied()
+}
+
 const CP437_TO_UTF8_CODE: [u32; 256] = [
   0x0000, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, //
   0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C, //
@@ -36,7 +44,7 @@ const CP437_TO_UTF8_CODE: [u32; 256] = [
 ];
 
 #[static_init::dynamic]
-pub static CP437_TO_UTF8_BYTES: [Vec<u8>; 256] = {
+static CP437_TO_UTF8_BYTES: [Vec<u8>; 256] = {
   let arr: [Vec<u8>; 256] = std::array::from_fn(|i| {
     let ch = char::from_u32(CP437_TO_UTF8_CODE[i]).unwrap();
     let mut buf = [0; 4];
@@ -46,7 +54,7 @@ pub static CP437_TO_UTF8_BYTES: [Vec<u8>; 256] = {
 };
 
 #[static_init::dynamic]
-pub static UTF8_CHAR_TO_CP437: HashMap<char, u8> = {
+static UTF8_CHAR_TO_CP437: HashMap<char, u8> = {
   let mut map: HashMap<char, u8> = Default::default();
   for (i, &code) in CP437_TO_UTF8_CODE.iter().enumerate() {
     map.insert(char::from_u32(code).unwrap(), i as u8);

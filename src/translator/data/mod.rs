@@ -1,3 +1,6 @@
+mod alignment;
+pub use alignment::Alignment;
+
 mod dictionary;
 mod wildcard_table;
 pub use dictionary::Dictionary;
@@ -6,6 +9,11 @@ pub use wildcard_table::WildcardTable;
 mod placeholder;
 mod transformer;
 mod rules;
+
+mod contexts;
+pub use contexts::CONTEXTS;
+mod interfaces;
+pub use interfaces::INTERFACES;
 
 mod help;
 pub use help::HELP;

@@ -143,7 +143,7 @@ impl StringCollector {
         df::graphic::set_color_info(gps, &self.last_color_info);
 
         let result: Vec<u8> =
-          self.chars.iter().flat_map(|&byte| encodings::cp437::CP437_TO_UTF8_BYTES[byte as usize].to_owned()).collect();
+          self.chars.iter().flat_map(|&byte| encodings::cp437_byte_to_utf8_char(byte).to_owned()).collect();
         let string = String::from_utf8_lossy(&result).into_owned();
 
         let text = screen::Text::new(TRANSLATOR.write().translate("string_collector", &string))
@@ -294,7 +294,7 @@ fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   // * 0x7ffda475bbb8 Use tallow (rendered fat) or oil here with lye to make soap. 24
   // * 0x7ffda4663918 A useful workshop for pressing liquids from various sources. Some plants might need to be milled first before they can be used.  Empty jugs are required to store the liquid products. 24
 
-  MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string));
+  MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string).0);
 }
 
 #[hook]
