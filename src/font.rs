@@ -13,7 +13,7 @@ pub const CJK_FONT_SIZE: u32 = 24;
 pub const BUF_SIZE: isize = (CJK_FONT_SIZE * CJK_FONT_SIZE) as isize;
 
 #[static_init::dynamic]
-pub static mut FONT: Font = Font::new(&CONFIG.settings.font);
+pub static mut FONT: Font = Font::new(&CONFIG.settings.font_file);
 
 pub struct Font {
   font: fontdue::Font,

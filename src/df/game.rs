@@ -24,6 +24,7 @@ pub struct MarkupTextBox {
 }
 
 impl MarkupTextBox {
+  #[allow(dead_code)] // FIXME
   pub fn at_mut(addr: usize) -> &'static mut Self {
     unsafe { &mut *(addr as *mut Self) }
   }

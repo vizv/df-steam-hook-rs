@@ -5,8 +5,6 @@ use data::MEGA;
 use item_name::translate_item_name;
 use skill_with_level::translate_skill_with_level;
 
-use crate::dictionary::DICTIONARY;
-
 mod data;
 mod matcher;
 
@@ -48,8 +46,6 @@ impl Translator {
       } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
         translated
       } else if let Some(translated) = data::MEGA.read().get(lower_string) {
-        translated.to_owned()
-      } else if let Some(translated) = DICTIONARY.get(string) {
         translated.to_owned()
       } else {
         string.to_owned()

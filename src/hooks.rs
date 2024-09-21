@@ -2,12 +2,15 @@ use anyhow::Result;
 use raw::{delete_cxxstring, new_cxxstring_n_chars};
 use retour::static_detour;
 
-use crate::config::CONFIG;
+use crate::df;
 use crate::global::{GAME, GPS};
 use crate::markup::MARKUP;
+use crate::offsets::OFFSETS;
 use crate::screen::{self, SCREEN};
 use crate::translator::TRANSLATOR;
-use crate::{df, encodings, utils};
+use crate::CONFIG;
+#[cfg(target_os = "windows")]
+use crate::{encodings, utils};
 
 use r#macro::hook;
 
@@ -15,8 +18,13 @@ pub unsafe fn attach_all() -> Result<()> {
   attach_addst()?;
   attach_addst_top()?;
   attach_addst_flag()?;
-  attach_addchar()?;
-  attach_addchar_flag()?;
+
+  #[cfg(target_os = "windows")]
+  {
+    attach_addchar()?;
+    attach_addchar_flag()?;
+  }
+
   attach_gps_allocate()?;
   attach_update_all()?;
   attach_update_tile()?;
@@ -33,8 +41,13 @@ pub unsafe fn enable_all() -> Result<()> {
   enable_addst()?;
   enable_addst_top()?;
   enable_addst_flag()?;
-  enable_addchar()?;
-  enable_addchar_flag()?;
+
+  #[cfg(target_os = "windows")]
+  {
+    enable_addchar()?;
+    enable_addchar_flag()?;
+  }
+
   enable_gps_allocate()?;
   enable_update_all()?;
   enable_update_tile()?;
@@ -51,8 +64,13 @@ pub unsafe fn disable_all() -> Result<()> {
   disable_addst()?;
   disable_addst_top()?;
   disable_addst_flag()?;
-  disable_addchar()?;
-  disable_addchar_flag()?;
+
+  #[cfg(target_os = "windows")]
+  {
+    disable_addchar()?;
+    disable_addchar_flag()?;
+  }
+
   disable_gps_allocate()?;
   disable_update_all()?;
   disable_update_tile()?;
@@ -65,7 +83,7 @@ pub unsafe fn disable_all() -> Result<()> {
   Ok(())
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
   let string = df::utils::deref_string(string_address);
@@ -78,7 +96,7 @@ fn addst(gps: usize, string_address: usize, just: u8, space: i32) {
   delete_cxxstring(dummy_ptr);
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
+#[cfg_attr(target_os = "linux", hook)]
 #[cfg_attr(target_os = "windows", hook(bypass))]
 fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u32) {
   let string = df::utils::deref_string(string_address);
@@ -91,6 +109,7 @@ fn addst_flag(gps: usize, string_address: usize, just: u8, space: i32, sflag: u3
   delete_cxxstring(dummy_ptr);
 }
 
+#[cfg(target_os = "windows")]
 fn get_caller_addr() -> usize {
   let mut depth = 4;
   let mut address = 0;
@@ -106,9 +125,11 @@ fn get_caller_addr() -> usize {
   ret
 }
 
+#[cfg(target_os = "windows")]
 #[static_init::dynamic]
 static mut STRING_COLLECTOR: StringCollector = Default::default();
 
+#[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
 struct StringCollector {
   last_caller: usize,
@@ -118,6 +139,7 @@ struct StringCollector {
   chars: Vec<u8>,
 }
 
+#[cfg(target_os = "windows")]
 impl StringCollector {
   fn push(&mut self, caller: usize, gps: usize, ch: u8, sflag: u32) {
     if caller == 0 && self.last_caller == 0 {
@@ -174,8 +196,8 @@ impl StringCollector {
   }
 }
 
-#[cfg_attr(target_os = "linux", hook(bypass))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[cfg(target_os = "windows")]
+#[hook]
 fn addchar(gps: usize, ch: u8, advance: u8) {
   if ch == 0 || ch == 219 || advance != 1 {
     STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
@@ -187,8 +209,8 @@ fn addchar(gps: usize, ch: u8, advance: u8) {
   STRING_COLLECTOR.write().push(caller, gps, ch, 0);
 }
 
-#[cfg_attr(target_os = "linux", hook(bypass))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[cfg(target_os = "windows")]
+#[hook]
 fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
   if ch == 0 || ch == 219 || advance != 1 {
     STRING_COLLECTOR.write().push(0, *GPS, 0, 0);
@@ -200,8 +222,7 @@ fn addchar_flag(gps: usize, ch: u8, advance: i8, sflag: u32) {
   STRING_COLLECTOR.write().push(caller, gps, ch, sflag);
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
   let string = df::utils::deref_string(string_address);
 
@@ -226,8 +247,7 @@ fn addst_top(gps: usize, string_address: usize, just: u8, space: i32) {
   delete_cxxstring(dummy_ptr);
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn draw_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
   unsafe { original!(texpos, sy, sx, ey, ex, flag) };
   if flag & 1 == 1 {
@@ -236,8 +256,7 @@ fn draw_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
   }
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn draw_horizontal_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, flag: u8) {
   unsafe { original!(texpos, sy, sx, ey, ex, flag) };
   if flag & 1 == 1 {
@@ -246,8 +265,7 @@ fn draw_horizontal_nineslice(texpos: usize, sy: i32, sx: i32, ey: i32, ex: i32, 
   }
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, tile_dim_x: u32, tile_dim_y: u32) {
   // graphicst::resize is inlined in Windows, hook gps_allocate instead
   unsafe { original!(renderer, x, y, screen_x, screen_y, tile_dim_x, tile_dim_y) };
@@ -255,8 +273,7 @@ fn gps_allocate(renderer: usize, x: i32, y: i32, screen_x: u32, screen_y: u32, t
   screen::SCREEN_TOP.write().resize(x, y);
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn update_all(renderer: usize) {
   unsafe { original!(renderer) };
 
@@ -266,8 +283,7 @@ fn update_all(renderer: usize) {
   }
 }
 
-#[cfg_attr(target_os = "linux", hook(by_symbol))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn update_tile(renderer: usize, x: i32, y: i32) {
   unsafe { original!(renderer, x, y) };
   let dim = df::graphic::deref_dim(GPS.to_owned());
@@ -282,8 +298,7 @@ fn update_tile(renderer: usize, x: i32, y: i32) {
   screen::SCREEN.write().clear();
 }
 
-#[cfg_attr(target_os = "linux", hook(by_offset))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   let string = df::utils::deref_string(string_address);
 
@@ -298,8 +313,7 @@ fn mtb_process_string_to_lines(text: usize, string_address: usize) {
   MARKUP.write().add(text, TRANSLATOR.write().translate("addst", &string));
 }
 
-#[cfg_attr(target_os = "linux", hook(by_offset))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn mtb_set_width(text_address: usize, current_width: i32) {
   let max_y = MARKUP.write().layout(text_address, current_width);
 
@@ -327,8 +341,7 @@ fn mtb_set_width(text_address: usize, current_width: i32) {
   unsafe { original!(text_address, current_width) };
 }
 
-#[cfg_attr(target_os = "linux", hook(by_offset))]
-#[cfg_attr(target_os = "windows", hook(by_offset))]
+#[hook]
 fn render_help_dialog(help_address: usize) {
   let help = df::game::GameMainInterfaceHelp::borrow_mut_at(help_address);
 
