@@ -1,6 +1,5 @@
 use super::offset;
 
-#[derive(Debug, Default)]
 pub struct Functions {
   // addst hooks (Linux-only)
   #[cfg(target_os = "linux")]

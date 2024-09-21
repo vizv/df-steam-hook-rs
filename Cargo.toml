@@ -19,7 +19,6 @@ regex = "1.10.6"
 backtrace = "0.3.74"
 serde = { version = "1.0.210", features = ["derive"] }
 static_init = "1.0.3"
-dlopen2 = "0.7.0"
 anyhow = "1.0.89"
 device_query = "2.1.0"
 sdl2 = "0.37.0"

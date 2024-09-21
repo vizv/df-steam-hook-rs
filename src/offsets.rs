@@ -11,7 +11,7 @@ pub static OFFSETS: Offsets = Offsets::new();
 pub struct Offsets {
   #[cfg(target_os = "linux")]
   g_src_maps: BTreeMap<u64, (u64, u64)>,
-  self_base: usize,
+  pub self_base: usize,
 }
 
 impl Offsets {

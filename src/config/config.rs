@@ -7,7 +7,6 @@ use super::{checksum, offsets, settings};
 #[static_init::dynamic]
 pub static CONFIG: Config = Config::new();
 
-#[derive(Debug, Default)]
 pub struct Config {
   pub offsets: offsets::Offsets,
   pub settings: settings::Settings,
@@ -20,12 +19,9 @@ impl Config {
     match Self::load() {
       Ok(config) => config,
       Err(message) => {
-        utils::message_box(
-          "dfint 错误",
-          message.to_string().as_str(),
-          utils::MessageIconType::Error,
-        );
-        Self::default()
+        let message = format!("加载配置文件失败：{message}");
+        utils::show_error_dialog(&message);
+        panic!("{}", message);
       }
     }
   }
