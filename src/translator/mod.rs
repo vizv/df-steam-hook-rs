@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use data::MEGA;
-
 use crate::utils;
 
 mod data;
@@ -52,8 +50,6 @@ impl Translator {
       return (string, 0);
     }
 
-    MEGA.write().load();
-
     let view_opt = utils::get_view();
     let view_opt = view_opt.as_deref();
     let key = StringWithContext {
@@ -80,7 +76,7 @@ impl Translator {
         (translated, 0)
       } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
         (translated, 0)
-      } else if let Some(translated) = data::MEGA.read().get(lower_string) {
+      } else if let Some(translated) = data::MEGA.get(lower_string) {
         (translated.to_owned(), 0)
       } else if let Some(translated) = data::LEGACY.get(lower_string) {
         is_legacy = true;
