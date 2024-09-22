@@ -12,10 +12,6 @@ mod interface;
 mod item_name;
 mod skill_with_level;
 mod version;
-use interface::translate_interface;
-use item_name::translate_item_name;
-use skill_with_level::translate_skill_with_level;
-use version::translate_version;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct StringWithContext<'a> {
@@ -45,8 +41,11 @@ pub struct Translator {
 }
 
 impl Translator {
-  pub fn translate<'a>(&'a mut self, func: &'static str, string: &'a String, bt: &str) -> (&'a str, i32) {
+  pub fn translate<'a>(&'a mut self, func: &'static str, string: &'a str, bt: &str) -> (&'a str, i32) {
     if string.starts_with("FPS: ") {
+      return (string, 0);
+    }
+    if string != version::VERSION && string.chars().find(|ch| ch.is_alphabetic()).is_none() {
       return (string, 0);
     }
 
@@ -64,15 +63,15 @@ impl Translator {
     if !self.cache.contains_key(&key) {
       let location_opt = context::get_context_location(view_opt, bt);
       let lower_string = &string.to_lowercase();
-      let (text, horizontal_shift) = if let Some(translated) = translate_version(view_opt, string) {
+      let (text, horizontal_shift) = if let Some(translated) = version::translate_version(view_opt, string) {
         (translated, 0)
-      } else if let Some(translation_tuple) = translate_interface(view_opt, location_opt, string) {
+      } else if let Some(translation_tuple) = interface::translate_interface(view_opt, location_opt, string) {
         translation_tuple
       } else if let Some(translated) = data::HELP.get(string) {
         (translated.to_owned(), 0)
-      } else if let Some(translated) = translate_skill_with_level(lower_string) {
+      } else if let Some(translated) = skill_with_level::translate_skill_with_level(lower_string) {
         (translated, 0)
-      } else if let Some(translated) = translate_item_name(lower_string) {
+      } else if let Some(translated) = item_name::translate_item_name(lower_string) {
         (translated, 0)
       } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
         (translated, 0)
@@ -82,7 +81,18 @@ impl Translator {
         is_legacy = true;
         (translated.to_owned(), 0)
       } else {
-        (string.to_owned(), 0)
+        if string.contains(", ") {
+          (
+            string
+              .split(", ")
+              .map(|string_part| self.translate(func, string_part, bt).0.to_owned())
+              .collect::<Vec<String>>()
+              .join(", "),
+            0,
+          )
+        } else {
+          (string.to_owned(), 0)
+        }
       };
 
       if string == &text {
@@ -93,7 +103,9 @@ impl Translator {
             "use legacy translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n- {string:?}\n+ {text:?}\n"
           );
         } else {
-          log::trace!("found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n- {string:?}\n+ {text:?}\n");
+          log::trace!(
+            "found translation for {func}:\n{view_opt:?}/{location_opt:?} @ {bt}:\n- {string:?}\n+ {text:?}\n"
+          );
         }
       }
       self.cache.insert(key, TranslatedText { text, horizontal_shift });
