@@ -26,13 +26,11 @@ impl Legacy {
 #[static_init::dynamic]
 pub static LEGACY: Legacy = {
   let mut ret = Legacy::default();
-
   utils::load_csv(
     utils::data_path("legacy-dictionary.csv"),
     |Entry { text, translation }| {
       ret.dict.insert(text.to_lowercase(), translation);
     },
   );
-
   ret
 };

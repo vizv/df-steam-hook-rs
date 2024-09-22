@@ -1,6 +1,4 @@
-use std::fs::File;
-
-use crate::translator::data::rules;
+use crate::{translator::data::rules, utils};
 
 use super::dictionary;
 
@@ -47,77 +45,70 @@ impl Plants {
   fn new() -> Self {
     let mut plants = Plants::default();
     let mut rule_set: rules::RuleSet = rules::RuleSet::default();
+    utils::load_csv(utils::translations_path("plants-rules.csv"), |rule: rules::Rule| {
+      rule_set.insert_rule(rule);
+    });
+    utils::load_csv(
+      utils::translations_path("plants-special.csv"),
+      |special: rules::Special| {
+        rule_set.insert_special(special);
+      },
+    );
+    utils::load_csv(
+      utils::translations_path("plants-base.csv"),
+      |PlantBase {
+         key,
+         npl,
+         adj,
+         ssg,
+         spl,
+         rtn,
+         tkn,
+         hbn,
+         lbn,
+         tgn,
+         cpn,
+         name,
+         name_translation,
+       }| {
+        let mut context = rules::RuleContext::new();
+        context.insert("NSG", (name, name_translation));
+        context.insert("NPL", (npl, String::new()));
+        context.insert("ADJ", (adj, String::new()));
+        context.insert("SSG", (ssg, String::new())); // SSG is needed by SPL
+        context.insert("SPL", (spl, String::new()));
+        context.insert("RTN", (rtn, String::new()));
+        context.insert("TKN", (tkn, String::new()));
+        context.insert("HBN", (hbn, String::new()));
+        context.insert("LBN", (lbn, String::new()));
+        context.insert("TGN", (tgn, String::new()));
+        context.insert("CPN", (cpn, String::new()));
 
-    let file = File::open("./dfint-data/translations/plants-rules.csv").unwrap();
-    let mut reader = csv::Reader::from_reader(file);
-    for result in reader.deserialize() {
-      rule_set.insert_rule(result.unwrap());
-    }
+        rule_set.process(&key, &mut context);
+        for (field, (word, translated)) in context {
+          if field != "ADJ" {
+            plants.nouns.insert(word.to_owned(), translated.to_owned());
+          }
 
-    let file = File::open("./dfint-data/translations/plants-special.csv").unwrap();
-    let mut reader = csv::Reader::from_reader(file);
-    for result in reader.deserialize() {
-      rule_set.insert_special(result.unwrap());
-    }
+          let dict = match field {
+            "NSG" => &mut plants.name_singulars,
+            "NPL" => &mut plants.name_plurals,
+            "ADJ" => &mut plants.adjectives,
+            "SSG" => &mut plants.seed_singulars,
+            "SPL" => &mut plants.seed_plurals,
+            "RTN" => &mut plants.root_names,
+            "TKN" => &mut plants.trunk_names,
+            "HBN" => &mut plants.heavy_branch_names,
+            "LBN" => &mut plants.light_branch_names,
+            "TGN" => &mut plants.twig_names,
+            "CPN" => &mut plants.cap_names,
+            field => panic!("unhandled field {field:?}"),
+          };
 
-    let file = File::open("./dfint-data/translations/plants-base.csv").unwrap();
-    let mut reader = csv::Reader::from_reader(file);
-    for result in reader.deserialize() {
-      let PlantBase {
-        key,
-        npl,
-        adj,
-        ssg,
-        spl,
-        rtn,
-        tkn,
-        hbn,
-        lbn,
-        tgn,
-        cpn,
-        name,
-        name_translation,
-      } = result.unwrap();
-      let mut context = rules::RuleContext::new();
-      context.insert("NSG", (name, name_translation));
-      context.insert("NPL", (npl, String::new()));
-      context.insert("ADJ", (adj, String::new()));
-      context.insert("SSG", (ssg, String::new())); // SSG is needed by SPL
-      context.insert("SPL", (spl, String::new()));
-      context.insert("RTN", (rtn, String::new()));
-      context.insert("TKN", (tkn, String::new()));
-      context.insert("HBN", (hbn, String::new()));
-      context.insert("LBN", (lbn, String::new()));
-      context.insert("TGN", (tgn, String::new()));
-      context.insert("CPN", (cpn, String::new()));
-
-      rule_set.process(&key, &mut context);
-      for (field, (word, translated)) in context {
-        if field != "ADJ" {
-          plants.nouns.insert(word.to_owned(), translated.to_owned());
+          dict.insert(word, translated);
         }
-
-        let dict = match field {
-          "NSG" => &mut plants.name_singulars,
-          "NPL" => &mut plants.name_plurals,
-          "ADJ" => &mut plants.adjectives,
-          "SSG" => &mut plants.seed_singulars,
-          "SPL" => &mut plants.seed_plurals,
-          "RTN" => &mut plants.root_names,
-          "TKN" => &mut plants.trunk_names,
-          "HBN" => &mut plants.heavy_branch_names,
-          "LBN" => &mut plants.light_branch_names,
-          "TGN" => &mut plants.twig_names,
-          "CPN" => &mut plants.cap_names,
-          field => panic!("unhandled field {field:?}"),
-        };
-
-        dict.insert(word, translated);
-      }
-    }
-
-    // println!("??? {plants:#?}");
-
+      },
+    );
     plants
   }
 }

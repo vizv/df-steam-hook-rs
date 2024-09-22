@@ -1,4 +1,4 @@
-use std::fs::File;
+use crate::utils;
 
 use super::dictionary;
 
@@ -38,45 +38,42 @@ pub struct MaterialsTemplates {
 impl MaterialsTemplates {
   fn new() -> Self {
     let mut materials_templates = MaterialsTemplates::default();
-
-    let file = File::open("./dfint-data/translations/materials_templates.csv").unwrap();
-    let mut reader = csv::Reader::from_reader(file);
-    for result in reader.deserialize() {
-      let MaterialsTemplate {
-        noun_all_solid,
-        noun_all_solid_translation,
-        noun_solid,
-        noun_solid_translation,
-        noun_powder,
-        noun_powder_translation,
-        noun_liquid,
-        noun_liquid_translation,
-        noun_gas,
-        noun_gas_translation,
-        adjective_all_solid,
-        adjective_all_solid_translation,
-        adjective_solid,
-        adjective_solid_translation,
-        adjective_powder,
-        adjective_powder_translation,
-        adjective_liquid,
-        adjective_liquid_translation,
-        adjective_gas,
-        adjective_gas_translation,
-      } = result.unwrap();
-
-      materials_templates.nouns.insert(noun_all_solid, noun_all_solid_translation);
-      materials_templates.nouns.insert(noun_solid, noun_solid_translation);
-      materials_templates.nouns.insert(noun_powder, noun_powder_translation);
-      materials_templates.nouns.insert(noun_liquid, noun_liquid_translation);
-      materials_templates.nouns.insert(noun_gas, noun_gas_translation);
-      materials_templates.adjectives.insert(adjective_all_solid, adjective_all_solid_translation);
-      materials_templates.adjectives.insert(adjective_solid, adjective_solid_translation);
-      materials_templates.adjectives.insert(adjective_powder, adjective_powder_translation);
-      materials_templates.adjectives.insert(adjective_liquid, adjective_liquid_translation);
-      materials_templates.adjectives.insert(adjective_gas, adjective_gas_translation);
-    }
-
+    utils::load_csv(
+      utils::translations_path("materials_templates.csv"),
+      |MaterialsTemplate {
+         noun_all_solid,
+         noun_all_solid_translation,
+         noun_solid,
+         noun_solid_translation,
+         noun_powder,
+         noun_powder_translation,
+         noun_liquid,
+         noun_liquid_translation,
+         noun_gas,
+         noun_gas_translation,
+         adjective_all_solid,
+         adjective_all_solid_translation,
+         adjective_solid,
+         adjective_solid_translation,
+         adjective_powder,
+         adjective_powder_translation,
+         adjective_liquid,
+         adjective_liquid_translation,
+         adjective_gas,
+         adjective_gas_translation,
+       }| {
+        materials_templates.nouns.insert(noun_all_solid, noun_all_solid_translation);
+        materials_templates.nouns.insert(noun_solid, noun_solid_translation);
+        materials_templates.nouns.insert(noun_powder, noun_powder_translation);
+        materials_templates.nouns.insert(noun_liquid, noun_liquid_translation);
+        materials_templates.nouns.insert(noun_gas, noun_gas_translation);
+        materials_templates.adjectives.insert(adjective_all_solid, adjective_all_solid_translation);
+        materials_templates.adjectives.insert(adjective_solid, adjective_solid_translation);
+        materials_templates.adjectives.insert(adjective_powder, adjective_powder_translation);
+        materials_templates.adjectives.insert(adjective_liquid, adjective_liquid_translation);
+        materials_templates.adjectives.insert(adjective_gas, adjective_gas_translation);
+      },
+    );
     materials_templates
   }
 }

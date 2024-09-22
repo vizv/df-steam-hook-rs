@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fs::File};
+use std::collections::HashMap;
+
+use crate::utils;
 
 #[derive(Debug, serde::Deserialize)]
 struct HelpDocument {
@@ -15,36 +17,33 @@ struct HelpText {
 }
 
 #[static_init::dynamic]
-pub static HELP: HashMap<String, String> = {
-  let mut help = HashMap::<String, String>::default();
-
-  let file = File::open("./dfint-data/translations/help-documents.csv").unwrap();
-  let mut reader = csv::Reader::from_reader(file);
-  for result in reader.deserialize() {
-    let HelpDocument {
-      title,
-      title_translation,
-      document,
-      document_translation,
-    } = result.unwrap();
-
-    if !title_translation.is_empty() {
-      help.insert(title, title_translation);
-    }
-    if !document_translation.is_empty() {
-      help.insert(document, document_translation);
-    }
-  }
-
-  let file = File::open("./dfint-data/translations/help-texts.csv").unwrap();
-  let mut reader = csv::Reader::from_reader(file);
-  for result in reader.deserialize() {
-    let HelpText { text, text_translation } = result.unwrap();
-
-    if !text_translation.is_empty() {
-      help.insert(text, text_translation);
-    }
-  }
-
-  help
+pub static HELP: Helps = {
+  let mut ret = Helps::default();
+  utils::load_csv(
+    utils::translations_path("help-documents.csv"),
+    |HelpDocument {
+       title,
+       title_translation,
+       document,
+       document_translation,
+     }| {
+      if !title_translation.is_empty() {
+        ret.insert(title, title_translation);
+      }
+      if !document_translation.is_empty() {
+        ret.insert(document, document_translation);
+      }
+    },
+  );
+  utils::load_csv(
+    utils::translations_path("help-texts.csv"),
+    |HelpText { text, text_translation }| {
+      if !text_translation.is_empty() {
+        ret.insert(text, text_translation);
+      }
+    },
+  );
+  ret
 };
+
+pub type Helps = HashMap<String, String>;

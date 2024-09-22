@@ -1,39 +1,34 @@
-use std::fs::File;
-
 use indexmap::IndexMap;
+
+use crate::utils;
 
 use super::alignment;
 
 #[static_init::dynamic]
 pub static INTERFACES: Interfaces = {
-  let mut interfaces = Interfaces::default();
+  let mut ret = Interfaces::default();
+  utils::load_csv(
+    utils::translations_path("interfaces.csv"),
+    |Interface {
+       viewscreen,
+       context,
+       alignment,
+       text,
+       text_translation,
+     }| {
+      if !ret.contains_key(&viewscreen) {
+        ret.insert(viewscreen.clone(), Default::default());
+      }
+      let contexts = ret.get_mut(&viewscreen).unwrap();
 
-  let file = File::open("./dfint-data/translations/interfaces.csv").unwrap();
-  let mut reader = csv::Reader::from_reader(file);
-  for result in reader.deserialize() {
-    let Interface {
-      viewscreen,
-      context,
-      alignment,
-      text,
-      text_translation,
-    } = result.unwrap();
-
-    if !interfaces.contains_key(&viewscreen) {
-      interfaces.insert(viewscreen.clone(), Default::default());
-    }
-    let contexts = interfaces.get_mut(&viewscreen).unwrap();
-
-    if !contexts.contains_key(&context) {
-      contexts.insert(context.clone(), Default::default());
-    }
-    let dictionary = contexts.get_mut(&context).unwrap();
-    dictionary.insert(text, (text_translation, alignment.as_str().into()));
-  }
-
-  // println!("{interfaces:#?}");
-
-  interfaces
+      if !contexts.contains_key(&context) {
+        contexts.insert(context.clone(), Default::default());
+      }
+      let dictionary = contexts.get_mut(&context).unwrap();
+      dictionary.insert(text, (text_translation, alignment.as_str().into()));
+    },
+  );
+  ret
 };
 
 #[derive(Debug, serde::Deserialize)]

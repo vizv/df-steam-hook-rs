@@ -1,4 +1,4 @@
-use std::fs::File;
+use crate::utils;
 
 use super::dictionary;
 
@@ -18,19 +18,16 @@ pub struct SkillLevels {
 
 impl SkillLevels {
   fn new() -> Self {
-    let mut skill_levels = SkillLevels::default();
-
-    let file = File::open("./dfint-data/translations/skill_levels.csv").unwrap();
-    let mut reader = csv::Reader::from_reader(file);
-    for result in reader.deserialize() {
-      let SkillLevel {
-        adjective,
-        adjective_translation,
-      } = result.unwrap();
-
-      skill_levels.adjectives.insert(adjective, adjective_translation);
-    }
-
-    skill_levels
+    let mut ret = SkillLevels::default();
+    utils::load_csv(
+      utils::translations_path("skill_levels.csv"),
+      |SkillLevel {
+         adjective,
+         adjective_translation,
+       }| {
+        ret.adjectives.insert(adjective, adjective_translation);
+      },
+    );
+    ret
   }
 }

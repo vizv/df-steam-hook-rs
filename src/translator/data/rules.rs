@@ -31,7 +31,6 @@ static RULE_REGEX: Regex = Regex::new(r"^[A-Z]{3}$").unwrap();
 
 pub type RuleContext<'a> = IndexMap<&'a str, (String, String)>;
 
-// TODO: move to a separate mod
 #[derive(Debug, Default)]
 pub struct RuleSet {
   // (target, rule) => (source, word_transformer, translation_transformer)
