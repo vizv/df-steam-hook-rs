@@ -5,10 +5,13 @@ use crate::utils;
 
 mod data;
 mod lookup;
+mod wrapper;
 
 mod context;
 mod interface;
 mod version;
+
+mod default;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct StringWithContext<'a> {
@@ -68,7 +71,7 @@ impl Translator {
         translation_tuple
       } else if let Some(translated) = data::HELP.get(string) {
         (translated.to_owned(), 0)
-      } else if let Some(translated) = lookup::get(lower_string) {
+      } else if let Some(translated) = default::get(lower_string) {
         (translated, 0)
       } else if let Some(translated) = data::LEGACY.get(lower_string) {
         is_legacy = true;
