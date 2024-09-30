@@ -4,13 +4,10 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use crate::utils;
 
 mod data;
-mod matcher;
+mod lookup;
 
 mod context;
-
 mod interface;
-mod item_name;
-mod skill_with_level;
 mod version;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -61,6 +58,8 @@ impl Translator {
 
     let mut is_legacy = false;
     if !self.cache.contains_key(&key) {
+      log::debug!("### {string:?}");
+
       let location_opt = context::get_context_location(view_opt, bt);
       let lower_string = &string.to_lowercase();
       let (text, horizontal_shift) = if let Some(translated) = version::translate_version(view_opt, string) {
@@ -69,14 +68,8 @@ impl Translator {
         translation_tuple
       } else if let Some(translated) = data::HELP.get(string) {
         (translated.to_owned(), 0)
-      } else if let Some(translated) = skill_with_level::translate_skill_with_level(lower_string) {
+      } else if let Some(translated) = lookup::get(lower_string) {
         (translated, 0)
-      } else if let Some(translated) = item_name::translate_item_name(lower_string) {
-        (translated, 0)
-      } else if let Some(translated) = matcher::match_workshop_string(lower_string) {
-        (translated, 0)
-      } else if let Some(translated) = data::MEGA.get(lower_string) {
-        (translated.to_owned(), 0)
       } else if let Some(translated) = data::LEGACY.get(lower_string) {
         is_legacy = true;
         (translated.to_owned(), 0)
