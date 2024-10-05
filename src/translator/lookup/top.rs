@@ -17,7 +17,9 @@ const CSV_FILES: &[&str] = &[
   "helms.csv",
   "gloves.csv",
   "ammos.csv",
+  "meats.csv",
   "items.csv",
+  "tasks.csv",
 ];
 const TOP_LOOKUPS: &[&str] = &[
   "CREATURE",
@@ -28,6 +30,7 @@ const TOP_LOOKUPS: &[&str] = &[
   "MATERIAL",
   "INFO_TAG:FLOOR", // TODO: add other types of INFO_TAG
   "ITEM",
+  "TASK",
 ];
 
 #[static_init::dynamic]
