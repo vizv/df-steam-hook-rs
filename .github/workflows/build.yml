@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/build.yml"
+
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/build.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install linux build deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt install libxi-dev
+          sudo apt install libxtst-dev
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload artifact (win)
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'windows-latest'
+        with:
+          name: dfint_hook.dll
+          path: ./target/release/dfint_hook.dll
+
+      - name: Upload artifact (linux)
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: libdfint_hook.so
+          path: ./target/release/libdfint_hook.so

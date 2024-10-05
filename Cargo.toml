@@ -1,0 +1,38 @@
+[package]
+name = "dfint_hook"
+version = "0.1.3"
+edition = "2021"
+
+[lib]
+name = "dfint_hook"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+macro = { path = "src/macro" }
+retour = { version = "0.3.1", features = ["static-detour"] }
+log = "0.4.22"
+simple-logging = "2.0.2"
+regex = "1.10.5"
+toml = "0.8.19"
+backtrace = "0.3.73"
+chrono = "0.4.38"
+serde_derive = "1.0.201"
+serde = "1.0.204"
+static_init = "1.0.3"
+dlopen2 = "0.7.0"
+anyhow = "1.0.86"
+device_query = "2.1.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+exe = "0.5.6"
+winapi = { version = "^0.3.9", features = [
+  "minwindef",
+  "winnt",
+  "libloaderapi",
+  "windef",
+  "winuser",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+checksum = "0.2.1"
